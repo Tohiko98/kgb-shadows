@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00FF41" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#000800" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="phosphor">
+      <feGaussianBlur stdDeviation="0.4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="4" fill="#000800"/>
+  <rect width="32" height="32" rx="4" fill="url(#glow)"/>
+
+  <!-- CRT scanlines (subtle) -->
+  <rect x="0" y="4"  width="32" height="1" fill="#00FF41" opacity="0.04"/>
+  <rect x="0" y="8"  width="32" height="1" fill="#00FF41" opacity="0.04"/>
+  <rect x="0" y="12" width="32" height="1" fill="#00FF41" opacity="0.04"/>
+  <rect x="0" y="16" width="32" height="1" fill="#00FF41" opacity="0.04"/>
+  <rect x="0" y="20" width="32" height="1" fill="#00FF41" opacity="0.04"/>
+  <rect x="0" y="24" width="32" height="1" fill="#00FF41" opacity="0.04"/>
+  <rect x="0" y="28" width="32" height="1" fill="#00FF41" opacity="0.04"/>
+
+  <!-- Crosshair / target -->
+  <g filter="url(#phosphor)" opacity="0.85">
+    <!-- Outer circle -->
+    <circle cx="16" cy="16" r="10" fill="none" stroke="#00FF41" stroke-width="1"/>
+    <!-- Inner circle -->
+    <circle cx="16" cy="16" r="5" fill="none" stroke="#00FF41" stroke-width="0.8"/>
+    <!-- Cross lines - top -->
+    <line x1="16" y1="3"  x2="16" y2="9"  stroke="#00FF41" stroke-width="1"/>
+    <!-- Cross lines - bottom -->
+    <line x1="16" y1="23" x2="16" y2="29" stroke="#00FF41" stroke-width="1"/>
+    <!-- Cross lines - left -->
+    <line x1="3"  y1="16" x2="9"  y2="16" stroke="#00FF41" stroke-width="1"/>
+    <!-- Cross lines - right -->
+    <line x1="23" y1="16" x2="29" y2="16" stroke="#00FF41" stroke-width="1"/>
+    <!-- Center dot -->
+    <circle cx="16" cy="16" r="1.2" fill="#00FF41"/>
+    <!-- Corner ticks -->
+    <line x1="8"  y1="8"  x2="10" y2="10" stroke="#00AA2A" stroke-width="0.7"/>
+    <line x1="24" y1="8"  x2="22" y2="10" stroke="#00AA2A" stroke-width="0.7"/>
+    <line x1="8"  y1="24" x2="10" y2="22" stroke="#00AA2A" stroke-width="0.7"/>
+    <line x1="24" y1="24" x2="22" y2="22" stroke="#00AA2A" stroke-width="0.7"/>
+  </g>
+
+  <!-- Border frame -->
+  <rect width="32" height="32" rx="4" fill="none" stroke="#00AA2A" stroke-width="0.8" opacity="0.6"/>
+</svg>

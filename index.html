@@ -1,0 +1,2781 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cold Code: KGB Shadows</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --pg:#00FF41; --pd:#00AA2A; --dark:#003D10;
+      --bg:#000800; --red:#FF0044; --amber:#FFB000;
+      --blue:#00CFFF; --cyan:#00FFEE;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--pg);min-height:100vh;overflow-x:hidden;}
+
+    /* CRT */
+    .crt::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 0%,rgba(0,0,0,.35) 90%,rgba(0,0,0,.7) 100%);pointer-events:none;z-index:1000;}
+    .crt::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.09) 0px,rgba(0,0,0,.09) 1px,transparent 1px,transparent 2px);pointer-events:none;z-index:999;}
+
+    /* SCREENS */
+    .screen{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2rem;text-align:center;z-index:100;}
+    .screen.hidden{display:none;}
+    .boot-line{opacity:0;transform:translateY(6px);margin-bottom:.5rem;transition:all .3s ease;}
+    .boot-line.visible{opacity:1;transform:none;}
+
+    /* BUTTONS */
+    .btn{margin-top:1.5rem;padding:.9rem 2rem;border:1px solid var(--pg);background:transparent;color:var(--pg);cursor:pointer;font-family:inherit;font-size:.95rem;transition:background .2s,box-shadow .2s;}
+    .btn:hover{background:rgba(0,255,65,.12);box-shadow:0 0 12px rgba(0,255,65,.2);}
+    .btn.hidden{display:none;}
+
+    /* MAIN MENU */
+    .menu-wrap{text-align:center;max-width:440px;width:100%;}
+    .menu-logo{margin-bottom:2.5rem;}
+    .menu-logo-top{font-size:.6rem;letter-spacing:.4em;color:var(--pd);margin-bottom:.5rem;}
+    .menu-logo-title{font-size:3.4rem;font-weight:700;letter-spacing:.08em;line-height:1;text-shadow:0 0 30px rgba(0,255,65,.55),0 0 70px rgba(0,255,65,.2);animation:logo-flicker 5s infinite;}
+    @keyframes logo-flicker{0%,93%,100%{opacity:1}94%{opacity:.8}95%{opacity:1}96.5%{opacity:.6}97%{opacity:1}}
+    .menu-logo-sub{font-size:.7rem;color:var(--pd);margin-top:.5rem;letter-spacing:.25em;}
+    .menu-logo-player{font-size:.72rem;color:var(--pg);margin-top:.8rem;min-height:1.2em;}
+
+    .menu-items{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.6rem;}
+    .menu-item{padding:.85rem 1.4rem;border:1px solid var(--pd);background:transparent;color:var(--pg);cursor:pointer;font-family:inherit;font-size:.85rem;text-align:left;transition:all .15s;display:flex;align-items:center;gap:.8rem;}
+    .menu-item:hover,.menu-item:focus{background:rgba(0,255,65,.08);border-color:var(--pg);padding-left:1.9rem;outline:none;}
+    .menu-item .mi-icon{color:var(--pd);font-size:.7rem;flex-shrink:0;}
+    .menu-item .mi-right{font-size:.6rem;color:var(--pd);margin-left:auto;}
+    .menu-item.disabled{opacity:.38;cursor:default;pointer-events:none;}
+
+    .menu-lang{display:flex;gap:.7rem;justify-content:center;margin-bottom:1rem;}
+    .lang-btn{padding:.35rem .85rem;border:1px solid var(--dark);background:transparent;color:var(--pd);cursor:pointer;font-family:inherit;font-size:.68rem;letter-spacing:.06em;transition:all .15s;}
+    .lang-btn:hover,.lang-btn.active{border-color:var(--pg);color:var(--pg);}
+    .menu-footer{font-size:.55rem;color:var(--dark);letter-spacing:.12em;margin-top:.3rem;}
+
+    /* NAME INPUT SCREEN */
+    .name-wrap{text-align:center;max-width:380px;}
+    .name-label{font-size:.62rem;letter-spacing:.22em;color:var(--pd);margin-bottom:1.2rem;}
+    .name-input-row{display:flex;align-items:center;border:1px solid var(--pg);padding:.7rem 1rem;margin-top:.3rem;}
+    .name-inp{background:transparent;border:none;color:var(--pg);font-family:inherit;font-size:1rem;outline:none;flex:1;letter-spacing:.08em;text-transform:uppercase;}
+    .name-inp::placeholder{color:var(--pd);}
+
+    /* CREDITS */
+    .credits-wrap{text-align:center;max-width:440px;}
+    .credits-scanline{font-size:.55rem;letter-spacing:.4em;color:var(--dark);margin-bottom:1.5rem;}
+    .credits-title{font-size:1.5rem;font-weight:700;letter-spacing:.25em;margin-bottom:2.2rem;text-shadow:0 0 20px rgba(0,255,65,.4);}
+    .credits-block{margin-bottom:1.5rem;}
+    .credits-role{font-size:.55rem;letter-spacing:.2em;color:var(--pd);margin-bottom:.25rem;}
+    .credits-name{font-size:.92rem;color:var(--pg);}
+    .credits-divider{height:1px;background:var(--dark);margin:1.5rem 0;}
+    .credits-github{display:inline-block;margin-top:1rem;padding:.55rem 1.2rem;border:1px solid var(--pd);color:var(--pd);text-decoration:none;font-size:.72rem;letter-spacing:.08em;transition:all .2s;}
+    .credits-github:hover{border-color:var(--pg);color:var(--pg);text-shadow:0 0 10px rgba(0,255,65,.5);}
+    .credits-series{font-size:.62rem;color:var(--pd);margin-top:1.2rem;letter-spacing:.08em;}
+
+    /* BRIEFING */
+    #screen-briefing{background:rgba(0,4,0,.98);z-index:200;overflow-y:auto;padding:2rem 1rem;justify-content:flex-start;padding-top:3rem;}
+    .briefing-wrap{max-width:680px;width:100%;text-align:left;}
+    .briefing-header{border:1px solid var(--pg);padding:1.2rem 1.5rem;margin-bottom:1.5rem;position:relative;}
+    .briefing-header::before{content:'';position:absolute;top:-1px;left:20px;width:80px;height:2px;background:var(--bg);}
+    .briefing-label{position:absolute;top:-10px;left:14px;background:var(--bg);padding:0 8px;font-size:.58rem;letter-spacing:.18em;color:var(--pd);}
+    .briefing-header h1{font-size:1.35rem;margin-bottom:.4rem;}
+    .briefing-header .sub{font-size:.7rem;color:var(--pd);}
+    .briefing-section{margin-bottom:1.4rem;}
+    .briefing-section h3{font-size:.6rem;letter-spacing:.15em;color:var(--pd);border-bottom:1px solid var(--dark);padding-bottom:.4rem;margin-bottom:.8rem;}
+    .briefing-section p{font-size:.76rem;line-height:1.8;color:#aaffbb;margin-bottom:.5rem;}
+    .briefing-obj-item{display:flex;gap:.6rem;font-size:.73rem;margin-bottom:.4rem;color:#aaffbb;}
+    .briefing-obj-num{color:var(--amber);flex-shrink:0;}
+    .cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
+    .cmd-entry{font-size:.68rem;}
+    .cmd-entry b{color:var(--pg);}
+    .cmd-entry span{color:var(--pd);}
+    .diff-bar{display:flex;gap:.3rem;align-items:center;margin-top:.6rem;}
+    .diff-pip{width:22px;height:8px;border:1px solid var(--pd);}
+    .diff-pip.active{background:var(--amber);border-color:var(--amber);}
+    .diff-pip.active.hard{background:var(--red);border-color:var(--red);}
+    .briefing-warning{border:1px solid var(--amber);padding:.7rem 1rem;font-size:.7rem;color:var(--amber);margin-top:1rem;line-height:1.6;}
+    .briefing-accept{width:100%;margin-top:1.5rem;padding:1rem;font-size:.88rem;letter-spacing:.08em;}
+
+    /* LOAD SAVE */
+    .save-wrap{text-align:left;max-width:440px;width:100%;}
+    .save-title{font-size:.62rem;letter-spacing:.25em;color:var(--pd);margin-bottom:1.5rem;text-align:center;}
+    .save-slot{border:1px solid var(--pd);padding:.9rem 1.1rem;margin-bottom:.6rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all .15s;}
+    .save-slot:hover{border-color:var(--pg);background:rgba(0,255,65,.05);}
+    .save-slot.empty{opacity:.4;cursor:default;}
+    .save-slot.empty:hover{border-color:var(--pd);background:transparent;}
+    .save-info{font-size:.72rem;}
+    .save-info .sn{color:var(--pg);display:block;margin-bottom:.2rem;}
+    .save-info .sd{font-size:.62rem;color:var(--pd);}
+    .save-delete{font-size:.62rem;color:var(--red);cursor:pointer;padding:.2rem .4rem;border:1px solid transparent;}
+    .save-delete:hover{border-color:var(--red);}
+
+    /* HUD */
+    #game{display:none;min-height:100vh;padding:1rem;}
+    .hud{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--pd);padding:.7rem 1rem;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem;}
+    .hud-item{font-size:.78rem;}
+    .badge{padding:.15rem .5rem;border:1px solid var(--pg);font-size:.7rem;}
+    .gauge-bar{height:12px;background:#001800;border:1px solid var(--pd);width:150px;position:relative;overflow:hidden;}
+    .gauge-fill{height:100%;transition:width .4s ease,background .4s;}
+    .gauge-fill.ok{background:var(--pg);}
+    .gauge-fill.warn{background:var(--amber);}
+    .gauge-fill.crit{background:var(--red);animation:pulse-gauge .6s infinite alternate;}
+    @keyframes pulse-gauge{from{opacity:1}to{opacity:.4}}
+
+    /* LAYOUT */
+    .layout{display:grid;grid-template-columns:2fr 1fr;gap:1rem;max-width:1400px;margin:0 auto;}
+    @media(max-width:768px){.layout{grid-template-columns:1fr;}}
+    .terminal{background:rgba(0,18,0,.85);border:2px solid var(--pd);padding:1rem;display:flex;flex-direction:column;min-height:520px;}
+    .out{flex:1;overflow-y:auto;font-size:.82rem;line-height:1.7;max-height:480px;scrollbar-width:thin;scrollbar-color:var(--pd) transparent;}
+    .inp-line{display:flex;align-items:center;border-top:1px solid var(--pd);padding-top:.8rem;margin-top:.5rem;}
+    .inp{flex:1;background:transparent;border:none;color:var(--pg);font-family:inherit;font-size:.88rem;outline:none;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    .cursor{animation:blink 1s step-end infinite;}
+    .inp:focus { outline: none; }
+    .side{display:flex;flex-direction:column;gap:1rem;}
+    .panel{background:rgba(0,18,0,.85);border:2px solid var(--pd);padding:1rem;}
+    .panel h3{font-size:.68rem;letter-spacing:.12em;color:var(--pd);margin-bottom:.7rem;}
+    .obj{display:flex;gap:.5rem;align-items:flex-start;font-size:.72rem;line-height:1.4;margin-bottom:.4rem;}
+    .chk{width:14px;height:14px;border:1px solid var(--pd);font-size:.55rem;text-align:center;line-height:14px;flex-shrink:0;margin-top:1px;}
+    .chk.done{background:var(--pg);color:#000;border-color:var(--pg);}
+    .chk.fail{background:var(--red);color:#fff;border-color:var(--red);}
+
+    /* MODAL */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,6,0,.97);display:none;justify-content:center;align-items:center;z-index:500;}
+    .modal-bg.active{display:flex;}
+    .modal{background:rgba(0,18,0,.99);border:2px solid var(--pg);padding:2rem;max-width:580px;width:90%;text-align:center;}
+    .modal h2{margin-bottom:1rem;font-size:1.35rem;}
+    .modal p{font-size:.82rem;color:var(--pd);margin-bottom:.6rem;line-height:1.6;}
+    .modal .btn{width:100%;text-align:left;font-size:.82rem;display:block;margin-top:.4rem;}
+
+    /* ALERT */
+    #alert-flash{position:fixed;top:0;left:0;right:0;z-index:800;background:var(--red);color:#fff;font-size:.8rem;padding:.4rem 1rem;text-align:center;display:none;}
+    #alert-flash.show{display:block;animation:flash-in .2s ease;}
+    @keyframes flash-in{from{opacity:0}to{opacity:1}}
+
+    /* SOUND TOGGLE */
+    #sound-toggle{position:fixed;bottom:1rem;right:1rem;z-index:900;background:transparent;border:1px solid var(--dark);color:var(--pd);font-family:inherit;font-size:.62rem;padding:.3rem .6rem;cursor:pointer;transition:all .2s;}
+    #sound-toggle:hover{border-color:var(--pd);color:var(--pg);}
+
+    /* OPTIONS SCREEN */
+    #screen-options .options-wrap{max-width:420px;width:100%;text-align:center;}
+    .options-title{font-size:.6rem;letter-spacing:.3em;color:var(--pd);margin-bottom:2rem;}
+    .opt-row{display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.2rem;border:1px solid var(--dark);margin-bottom:.4rem;font-size:.8rem;}
+    .opt-row:hover{border-color:var(--pd);}
+    .opt-label{color:var(--pd);font-size:.65rem;letter-spacing:.12em;}
+    .opt-val{color:var(--pg);}
+    .opt-controls{display:flex;gap:.5rem;align-items:center;}
+    .opt-btn{padding:.3rem .8rem;border:1px solid var(--pd);background:transparent;color:var(--pg);cursor:pointer;font-family:inherit;font-size:.72rem;transition:all .15s;}
+    .opt-btn:hover{background:rgba(0,255,65,.12);border-color:var(--pg);}
+    .opt-btn.active{background:rgba(0,255,65,.18);border-color:var(--pg);}
+    /* Volume slider */
+    .opt-slider{-webkit-appearance:none;appearance:none;width:110px;height:4px;background:var(--dark);border:1px solid var(--pd);outline:none;cursor:pointer;}
+    .opt-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--pg);border:none;cursor:pointer;}
+    .opt-slider::-moz-range-thumb{width:14px;height:14px;background:var(--pg);border:none;cursor:pointer;}
+    .opt-vol-val{font-size:.7rem;color:var(--pg);min-width:2.2rem;text-align:right;}
+
+
+    body.lv3{--pg:#FFB000;--pd:#CC8800;--dark:#3D2500;--bg:#080400;}
+    body.lv3 .crt::after{background:repeating-linear-gradient(0deg,rgba(0,0,0,.11) 0px,rgba(0,0,0,.11) 1px,transparent 1px,transparent 2px);}
+
+    .s{color:#00FF99;} .w{color:var(--amber);} .d{color:var(--red);}
+    .g{color:var(--pd);font-style:italic;} .h{color:var(--pg);text-shadow:0 0 8px var(--pg);}
+  </style>
+</head>
+<body class="crt">
+
+<!-- BOOT -->
+<div class="screen" id="screen-boot">
+  <div class="boot-line" id="b1">VAX/VMS V4.5 — LBL GATEWAY NODE</div>
+  <div class="boot-line" id="b2">Memory Test: 640K OK ... PASS</div>
+  <div class="boot-line" id="b3">Network: TYMNET / ARPANET ... ONLINE</div>
+  <div class="boot-line" id="b4" id="b4-txt">Anno: 1986 — Operatore: Cliff Stoll, Astronomo/SysAdmin</div>
+  <div class="boot-line" id="b5" style="color:var(--red);">⚠ ANOMALIA CONTABILE: -$0.75 — account non autorizzato rilevato</div>
+  <button class="btn hidden" id="btn-start">▶ PREMI PER CONTINUARE</button>
+</div>
+
+<!-- MAIN MENU -->
+<div class="screen hidden" id="screen-menu">
+  <div class="menu-wrap">
+    <div class="menu-logo">
+      <div class="menu-logo-top">◈ COLD CODE ◈</div>
+      <div class="menu-logo-title">KGB SHADOWS</div>
+      <div class="menu-logo-sub">1986 — 1991</div>
+    </div>
+    <div class="menu-items" id="menu-items"></div>
+    <div class="menu-footer">v3.0 — COLD CODE SERIES — © 2024 Anton / Tohiko98</div>
+  </div>
+</div>
+
+<!-- NAME INPUT -->
+<div class="screen hidden" id="screen-name">
+  <div class="name-wrap">
+    <div class="name-label" id="name-label-txt">INSERISCI NOME AGENTE</div>
+    <div class="name-input-row">
+      <span style="margin-right:8px;color:var(--pd);">▶</span>
+      <input id="name-inp" class="name-inp" maxlength="14" autocomplete="off" spellcheck="false" placeholder="AGENTE_">
+    </div>
+    <button class="btn" style="margin-top:1.5rem;min-width:220px;" id="btn-name-ok">▶ CONFERMA</button>
+    <button class="btn" style="margin-top:.5rem;min-width:220px;font-size:.75rem;color:var(--pd);border-color:var(--dark);" id="btn-name-back">← INDIETRO</button>
+  </div>
+</div>
+
+<!-- LOAD SAVE -->
+<div class="screen hidden" id="screen-load">
+  <div class="save-wrap">
+    <div class="save-title" id="load-title-txt">◈ CARICA PARTITA ◈</div>
+    <div id="save-slots"></div>
+    <button class="btn" style="width:100%;margin-top:.5rem;font-size:.75rem;color:var(--pd);border-color:var(--dark);" id="btn-load-back">← INDIETRO</button>
+  </div>
+</div>
+
+<!-- OPTIONS -->
+<div class="screen hidden" id="screen-options">
+  <div class="options-wrap">
+    <div class="options-title" id="opt-title">◈ OPZIONI / OPTIONS ◈</div>
+
+    <div class="opt-row">
+      <div><div class="opt-label" id="opt-lang-label">LINGUA / LANGUAGE</div></div>
+      <div class="opt-controls">
+        <button class="opt-btn" id="opt-it">🇮🇹 IT</button>
+        <button class="opt-btn" id="opt-en">🇬🇧 EN</button>
+      </div>
+    </div>
+
+    <div class="opt-row">
+      <div><div class="opt-label" id="opt-sfx-label">EFFETTI SONORI</div><div class="opt-val" id="opt-sfx-val">ON</div></div>
+      <div class="opt-controls">
+        <button class="opt-btn active" id="opt-sfx-on">ON</button>
+        <button class="opt-btn"        id="opt-sfx-off">OFF</button>
+      </div>
+    </div>
+
+    <div class="opt-row">
+      <div><div class="opt-label" id="opt-sfx-vol-label">VOLUME SFX</div></div>
+      <div class="opt-controls">
+        <input class="opt-slider" type="range" min="0" max="100" value="70" id="opt-sfx-vol-slider">
+        <span class="opt-vol-val" id="opt-sfx-vol-val">70%</span>
+      </div>
+    </div>
+
+    <div class="opt-row">
+      <div><div class="opt-label" id="opt-music-label">MUSICA MENU</div><div class="opt-val" id="opt-music-val">ON</div></div>
+      <div class="opt-controls">
+        <button class="opt-btn active" id="opt-music-on">ON</button>
+        <button class="opt-btn"        id="opt-music-off">OFF</button>
+      </div>
+    </div>
+
+    <div class="opt-row">
+      <div><div class="opt-label" id="opt-music-vol-label">VOLUME MUSICA</div></div>
+      <div class="opt-controls">
+        <input class="opt-slider" type="range" min="0" max="100" value="60" id="opt-music-vol-slider">
+        <span class="opt-vol-val" id="opt-music-vol-val">60%</span>
+      </div>
+    </div>
+
+    <div class="opt-row">
+      <div><div class="opt-label" id="opt-txt-label">VELOCITÀ TESTO</div><div class="opt-val" id="opt-txt-val">NORMALE</div></div>
+      <div class="opt-controls">
+        <button class="opt-btn"        id="opt-txt-slow">LENTO</button>
+        <button class="opt-btn active"  id="opt-txt-normal">NORMALE</button>
+        <button class="opt-btn"         id="opt-txt-fast">VELOCE</button>
+      </div>
+    </div>
+
+    <button class="btn" style="margin-top:1.5rem;min-width:220px;" id="btn-options-back">← MENU</button>
+  </div>
+</div>
+
+<!-- CREDITS -->
+
+<div class="screen hidden" id="screen-credits">
+  <div class="credits-wrap">
+    <div class="credits-scanline">◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈ ◈</div>
+    <div class="credits-title">◈ CREDITS ◈</div>
+    <div class="credits-block">
+      <div class="credits-role" id="cr-dev">DESIGN &amp; SVILUPPO</div>
+      <div class="credits-name">Anton</div>
+    </div>
+    <div class="credits-block">
+      <div class="credits-role" id="cr-ai">AI &amp; GAME ENGINE</div>
+      <div class="credits-name">Claude Sonnet — Anthropic</div>
+    </div>
+    <div class="credits-divider"></div>
+    <div class="credits-block">
+      <div class="credits-role" id="cr-insp">ISPIRATO A</div>
+      <div class="credits-name">"The Cuckoo's Egg" — Cliff Stoll, 1989</div>
+    </div>
+    <div class="credits-block">
+      <div class="credits-role" id="cr-series">PARTE DELLA SERIE</div>
+      <div class="credits-name">Cold Code — Browser Games</div>
+    </div>
+    <a class="credits-github" href="https://github.com/Tohiko98" target="_blank" id="credits-gh-link">
+      ◈ github.com/Tohiko98 ◈
+    </a>
+    <div class="credits-series" id="cr-see-also">Vedi anche: <span style="color:var(--pg);">Neuro Arena</span></div>
+    <button class="btn" style="margin-top:2rem;min-width:220px;" id="btn-credits-back">← MENU</button>
+  </div>
+</div>
+
+<!-- BRIEFING -->
+<div class="screen hidden" id="screen-briefing">
+  <div class="briefing-wrap" id="briefing-content"></div>
+</div>
+
+<!-- TRANSITION -->
+<div class="screen hidden" id="screen-trans">
+  <h1 class="s" style="font-size:1.8rem;margin-bottom:1rem;" id="trans-title"></h1>
+  <div id="trans-body" style="color:var(--pd);max-width:520px;line-height:1.8;font-size:.85rem;"></div>
+  <button class="btn" id="btn-trans"></button>
+</div>
+
+<!-- GAME -->
+<div id="game">
+  <div class="hud">
+    <div class="hud-item">AGENTE: <span class="s" id="hud-user"></span></div>
+    <div class="hud-item"><span class="badge" id="hud-badge"></span></div>
+    <div class="hud-item">STATO: <span id="hud-status"></span></div>
+    <div class="hud-item">
+      <div style="font-size:.6rem;margin-bottom:2px;" id="hud-sec-label">SICUREZZA SISTEMA</div>
+      <div class="gauge-bar"><div class="gauge-fill ok" id="gauge" style="width:65%"></div></div>
+    </div>
+    <div class="hud-item" id="hud-timer-wrap" style="display:none;">
+      TIMER: <span id="hud-timer" class="w">--</span>
+    </div>
+    <div class="hud-item">
+      <button id="hud-exit-btn"
+        style="background:transparent;border:1px solid var(--dark);color:var(--pd);font-family:inherit;font-size:.65rem;padding:.3rem .7rem;cursor:pointer;letter-spacing:.06em;transition:all .15s;">
+        ✕ MENU
+      </button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="terminal">
+      <div class="out" id="out"></div>
+      <div class="inp-line">
+        <span style="margin-right:8px;" id="prompt">$</span>
+        <input class="inp" id="inp" autofocus autocomplete="off" spellcheck="false">
+        <span class="cursor">█</span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel"><h3 id="panel-obj-title">◈ OBIETTIVI</h3><div id="obj-list"></div></div>
+      <div class="panel"><h3 id="panel-cmd-title">◈ COMANDI</h3><div id="cmd-list" style="font-size:.68rem;color:var(--pd);line-height:1.9;"></div></div>
+      <div class="panel" id="intel-panel" style="display:none;"><h3 id="panel-intel-title">◈ INTEL</h3><div id="intel-list" style="font-size:.68rem;line-height:1.8;"></div></div>
+      <div class="panel" id="threat-panel" style="display:none;border-color:var(--red);"><h3 id="panel-threat-title" style="color:var(--red);">⚠ MINACCE ATTIVE</h3><div id="threat-list" style="font-size:.68rem;line-height:1.8;color:var(--amber);"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<!-- ALERT -->
+<div id="alert-flash"></div>
+
+<!-- SOUND TOGGLE -->
+<button id="sound-toggle">🔊 SFX</button>
+
+<script>
+// ══════════════════════════════════════════
+//  AUDIO ENGINE — Web Audio API 8-bit
+// ══════════════════════════════════════════
+let audioCtx = null;
+let soundEnabled = true;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  $('sound-toggle').textContent = soundEnabled ? '🔊 SFX' : '🔇 SFX';
+  if (soundEnabled) sfx('blip');
+}
+
+// Core synth: square/pulse wave tone
+function playTone(freq, dur, type='square', vol=0.18, detune=0) {
+  if (!soundEnabled) return;
+  const v = vol * (typeof sfxVolume !== 'undefined' ? sfxVolume : 0.7);
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (detune) osc.detune.setValueAtTime(detune, ctx.currentTime);
+    gain.gain.setValueAtTime(v, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+function playArpeggio(notes, interval=80, dur=0.12, type='square') {
+  notes.forEach((f, i) => setTimeout(() => playTone(f, dur, type), i * interval));
+}
+
+const sfxMap = {
+  // UI — metallici, freddi
+  blip:    () => { playTone(220, 0.06, 'sawtooth', 0.12); playTone(330, 0.04, 'square', 0.05); },
+  click:   () => { playTone(180, 0.08, 'sawtooth', 0.14); setTimeout(()=>playTone(120,0.06,'square',0.06),40); },
+  back:    () => playArpeggio([220, 165, 110], 80, 0.12, 'sawtooth'),
+  hover:   () => playTone(196, 0.03, 'sawtooth', 0.05),
+
+  // GAME EVENTS — cupi, pesanti
+  typekey: () => playTone(rand([110,130,147,165]), 0.05, 'sawtooth', 0.06),
+  success: () => {
+    // accordo minore ascendente — vittoria amara
+    playArpeggio([220,277,330,415], 110, 0.18, 'square');
+    setTimeout(()=>playTone(440,0.3,'square',0.07),500);
+  },
+  fail:    () => {
+    playArpeggio([220,196,175,147], 100, 0.18, 'sawtooth');
+    setTimeout(()=>playTone(110,0.4,'sawtooth',0.1),420);
+  },
+  warning: () => {
+    playTone(146, 0.12, 'sawtooth', 0.18);
+    setTimeout(()=>playTone(138,0.12,'sawtooth',0.18),220);
+    setTimeout(()=>playTone(146,0.12,'sawtooth',0.18),440);
+  },
+  threat:  () => {
+    playTone(110, 0.10, 'sawtooth', 0.20);
+    setTimeout(()=>playTone(98, 0.18,'sawtooth',0.18),130);
+    setTimeout(()=>playTone(87, 0.24,'sawtooth',0.15),300);
+  },
+  levelup: () => {
+    playArpeggio([220,277,330,220,277,330,415], 95, 0.14, 'square');
+    setTimeout(()=>playTone(440,0.35,'square',0.08),750);
+  },
+  gameover:() => {
+    playArpeggio([220,196,175,156,138,110], 140, 0.20, 'sawtooth');
+    setTimeout(()=>playTone(87,0.6,'sawtooth',0.12),900);
+  },
+  download:() => {
+    const notes=[165,185,196,220,247,277,311,349];
+    notes.forEach((f,i)=>setTimeout(()=>playTone(f,0.08,'sawtooth',0.09),i*70));
+  },
+  transmit:() => {
+    playArpeggio([330,370,415,466,523], 80, 0.10, 'square');
+    setTimeout(()=>playTone(196,0.2,'sawtooth',0.06),480);
+  },
+  decrypt: () => {
+    for(let i=0;i<6;i++) setTimeout(()=>playTone(rand([110,130,147,165,185]),0.07,'sawtooth',0.09),i*90);
+  },
+  scan:    () => {
+    for(let i=0;i<6;i++) setTimeout(()=>playTone(rand([196,220,247,277]),0.06,'sawtooth',0.07), i*130);
+  },
+  boot:    () => {
+    playArpeggio([110,138,165,196,247,330], 160, 0.18, 'sawtooth');
+    setTimeout(()=>playTone(220,0.4,'square',0.06),1100);
+  },
+};
+
+function sfx(name) {
+  if (sfxMap[name]) sfxMap[name]();
+}
+
+// Periodic bleep during game
+let ambiInterval = null;
+function startAmbi() {
+  clearInterval(ambiInterval);
+  ambiInterval = setInterval(() => {
+    if (!soundEnabled || inputDisabled) return;
+    if (Math.random() < 0.35) playTone(rand([330,440,550,220]),0.04,'square',0.04);
+  }, 4000);
+}
+
+// ══════════════════════════════════════════
+//  MENU MUSIC — Cold War cinematic theme
+// ══════════════════════════════════════════
+let menuMusicEnabled = localStorage.getItem('kgb_music') !== 'off';
+let menuMusicTimers = [];   // track all active setTimeout ids for clean cancel
+
+function stopMenuMusic() {
+  menuMusicTimers.forEach(id => clearTimeout(id));
+  menuMusicTimers = [];
+}
+
+// Schedule a note; returns the timeout id
+function schedNote(freq, time, dur, type='square', vol=0.10) {
+  const id = setTimeout(() => {
+    if (!soundEnabled || !menuMusicEnabled) return;
+    try {
+      const ctx = getAudioCtx();
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = type;
+      osc.frequency.value = freq;
+      const v = vol * (typeof musicVolume !== 'undefined' ? musicVolume : 0.6);
+      gain.gain.setValueAtTime(v, ctx.currentTime);
+      gain.gain.setTargetAtTime(0, ctx.currentTime + dur * 0.6, dur * 0.25);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + dur * 1.1);
+    } catch(e) {}
+  }, time);
+  menuMusicTimers.push(id);
+  return id;
+}
+
+function playMenuMusic() {
+  stopMenuMusic();
+  if (!soundEnabled || !menuMusicEnabled) return;
+
+  // ── Cinematic Cold War theme ──────────────────────────────────────
+  // Tempo: ~52 BPM. Beat = 1150ms. 16 bars total ≈ 18.4s loop.
+  // Tonality: D minor / Phrygian — dark, Soviet, inevitable.
+  // Layers: bass drone | slow melody | tension chord stabs | echo tail
+
+  const B = 1150; // one beat in ms
+
+  // Layer 1: Deep bass drone — D2 pedal point, very slow pulse
+  const bassNotes = [
+    [73,  0*B, 2.2],   // D2
+    [73,  2*B, 2.2],
+    [73,  4*B, 2.2],
+    [65,  6*B, 2.2],   // A1 (fifth)
+    [73,  8*B, 2.2],
+    [73, 10*B, 2.2],
+    [69, 12*B, 2.2],   // Bb1 (dark flat six)
+    [65, 14*B, 2.2],   // A1
+  ];
+  bassNotes.forEach(([f,t,d]) => schedNote(f, t, d, 'square', 0.055));
+
+  // Layer 2: Sub-bass — octave below, very quiet, adds weight
+  bassNotes.forEach(([f,t,d]) => schedNote(f/2, t+80, d*0.9, 'sawtooth', 0.025));
+
+  // Layer 3: Slow haunting melody — sparse, long notes, Cold War spy feel
+  // Phrygian mode on D: D Eb F G A Bb C
+  const mel = [
+    [294, 0.5*B, 1.6],   // D4 — enter gently
+    [311, 2.5*B, 1.4],   // Eb4 — tension
+    [294, 4.0*B, 2.0],   // D4 — resolve
+    [262, 6.0*B, 1.8],   // C4 — descend
+    [247, 7.5*B, 1.4],   // B3 — leading
+    [220, 9.0*B, 2.4],   // A3 — dark landing
+    [233, 11.0*B,1.6],   // Bb3 — menace
+    [247, 12.5*B,1.2],   // B3
+    [262, 13.5*B,1.0],   // C4
+    [294, 14.5*B,2.8],   // D4 — return, hold
+  ];
+  mel.forEach(([f,t,d]) => schedNote(f, t, d, 'square', 0.08));
+
+  // Layer 4: Tension chord stabs — short, dissonant, every 4 beats
+  // Dm + tritone colour (D+Ab) — Soviet dread
+  const chords = [
+    [[294,370], 3*B, 0.35],   // Dm stab
+    [[220,277], 7*B, 0.35],   // Am stab
+    [[294,370], 11*B,0.35],   // Dm stab
+    [[247,311], 15*B,0.35],   // Bm7 exit
+  ];
+  chords.forEach(([freqs,t,d]) => {
+    freqs.forEach(f => schedNote(f, t, d, 'square', 0.045));
+  });
+
+  // Layer 5: High-register echo melody — delayed copy, very quiet, adds depth
+  mel.forEach(([f,t,d]) => schedNote(f*2, t+180, d*0.7, 'square', 0.022));
+
+  // Schedule next loop
+  const loopLen = 16 * B + 800;
+  const loopId = setTimeout(() => { if (menuMusicEnabled && soundEnabled) playMenuMusic(); }, loopLen);
+  menuMusicTimers.push(loopId);
+}
+
+function startMenuMusic() {
+  stopMenuMusic();
+  if (!menuMusicEnabled) return;
+  // Small delay so AudioContext resumes after user gesture
+  const id = setTimeout(() => playMenuMusic(), 600);
+  menuMusicTimers.push(id);
+}
+
+// ══════════════════════════════════════════
+//  OPTIONS
+// ══════════════════════════════════════════
+let textSpeed    = localStorage.getItem('kgb_txtspeed') || 'normal';
+let sfxVolume    = parseFloat(localStorage.getItem('kgb_sfxvol')   ?? '0.70');
+let musicVolume  = parseFloat(localStorage.getItem('kgb_musicvol') ?? '0.60');
+
+const textSpeedMap = { slow: 600, normal: 420, fast: 180 };
+function getTextStep() { return textSpeedMap[textSpeed] || 420; }
+
+// Volume multipliers used by playTone and schedNote
+function sfxVol(base)   { return base * sfxVolume; }
+function musicVol(base) { return base * musicVolume; }
+
+function setSfxVolume(val) {
+  sfxVolume = val / 100;
+  localStorage.setItem('kgb_sfxvol', sfxVolume);
+  $('opt-sfx-vol-val').textContent = val + '%';
+  sfx('blip');
+}
+
+function setMusicVolume(val) {
+  musicVolume = val / 100;
+  localStorage.setItem('kgb_musicvol', musicVolume);
+  $('opt-music-vol-val').textContent = val + '%';
+}
+
+function setOptSfx(val) {
+  soundEnabled = val;
+  $('opt-sfx-on').classList.toggle('active', val);
+  $('opt-sfx-off').classList.toggle('active', !val);
+  $('opt-sfx-val').textContent = val ? 'ON' : 'OFF';
+  $('sound-toggle').textContent = val ? '🔊 SFX' : '🔇 SFX';
+  if (val) sfx('blip');
+}
+
+function setOptMusic(val) {
+  menuMusicEnabled = val;
+  localStorage.setItem('kgb_music', val ? 'on' : 'off');
+  $('opt-music-on').classList.toggle('active', val);
+  $('opt-music-off').classList.toggle('active', !val);
+  $('opt-music-val').textContent = val ? 'ON' : 'OFF';
+  if (val) startMenuMusic(); else stopMenuMusic();
+}
+
+function setTextSpeed(speed) {
+  textSpeed = speed;
+  localStorage.setItem('kgb_txtspeed', speed);
+  ['slow','normal','fast'].forEach(s => $('opt-txt-'+s)?.classList.toggle('active', s===speed));
+  const lbl = lang==='en'
+    ? {slow:'SLOW',normal:'NORMAL',fast:'FAST'}[speed]
+    : {slow:'LENTO',normal:'NORMALE',fast:'VELOCE'}[speed];
+  $('opt-txt-val').textContent = lbl;
+  sfx('blip');
+}
+
+// Re-apply all option labels in current language — called by setLang too
+function refreshOptionsUI() {
+  const isEn = lang === 'en';
+  $('opt-it').classList.toggle('active', lang==='it');
+  $('opt-en').classList.toggle('active', lang==='en');
+
+  $('opt-lang-label').textContent      = isEn ? 'LANGUAGE'      : 'LINGUA / LANGUAGE';
+  $('opt-sfx-label').textContent       = isEn ? 'SOUND FX'      : 'EFFETTI SONORI';
+  $('opt-sfx-vol-label').textContent   = isEn ? 'SFX VOLUME'    : 'VOLUME SFX';
+  $('opt-music-label').textContent     = isEn ? 'MENU MUSIC'    : 'MUSICA MENU';
+  $('opt-music-vol-label').textContent = isEn ? 'MUSIC VOLUME'  : 'VOLUME MUSICA';
+  $('opt-txt-label').textContent       = isEn ? 'TEXT SPEED'    : 'VELOCITÀ TESTO';
+  $('opt-txt-slow').textContent        = isEn ? 'SLOW'   : 'LENTO';
+  $('opt-txt-normal').textContent      = isEn ? 'NORMAL' : 'NORMALE';
+  $('opt-txt-fast').textContent        = isEn ? 'FAST'   : 'VELOCE';
+  $('btn-options-back').textContent    = isEn ? '← MENU' : '← MENU';
+
+  $('opt-sfx-on').classList.toggle('active', soundEnabled);
+  $('opt-sfx-off').classList.toggle('active', !soundEnabled);
+  $('opt-sfx-val').textContent = soundEnabled ? 'ON' : 'OFF';
+
+  $('opt-music-on').classList.toggle('active', menuMusicEnabled);
+  $('opt-music-off').classList.toggle('active', !menuMusicEnabled);
+  $('opt-music-val').textContent = menuMusicEnabled ? 'ON' : 'OFF';
+
+  ['slow','normal','fast'].forEach(s => $('opt-txt-'+s)?.classList.toggle('active', s===textSpeed));
+  $('opt-txt-val').textContent = isEn
+    ? {slow:'SLOW',normal:'NORMAL',fast:'FAST'}[textSpeed]
+    : {slow:'LENTO',normal:'NORMALE',fast:'VELOCE'}[textSpeed];
+
+  const sfxPct   = Math.round(sfxVolume   * 100);
+  const musicPct = Math.round(musicVolume * 100);
+  $('opt-sfx-vol-slider').value   = sfxPct;
+  $('opt-sfx-vol-val').textContent   = sfxPct   + '%';
+  $('opt-music-vol-slider').value = musicPct;
+  $('opt-music-vol-val').textContent = musicPct + '%';
+}
+
+function showOptions() {
+  sfx('click');
+  hideAllScreens();
+  $('screen-options').classList.remove('hidden');
+  refreshOptionsUI();
+}
+
+// ══════════════════════════════════════════
+//  LOCALISATION
+// ══════════════════════════════════════════
+let lang = localStorage.getItem('kgb_lang') || 'it';
+
+const T = {
+  it: {
+    menuNewGame:    '▶ NUOVA PARTITA',
+    menuNewGameSub: 'Inserisci nome agente',
+    menuLoad:       '▶ CARICA PARTITA',
+    menuLoadSub:    'Continua da un salvataggio',
+    menuCredits:    '▶ CREDITS',
+    menuCreditsSub: 'Autore e ringraziamenti',
+    menuWelcome:    'AGENTE: ',
+    nameLabel:      'INSERISCI NOME AGENTE',
+    nameConfirm:    '▶ CONFERMA',
+    nameBack:       '← INDIETRO',
+    loadTitle:      '◈ CARICA PARTITA ◈',
+    loadBack:       '← INDIETRO',
+    loadEmpty:      'Slot vuoto',
+    loadDelete:     '✕',
+    loadLv:         'Livello',
+    loadSec:        'Sicurezza',
+    crDev:          'DESIGN & SVILUPPO',
+    crAI:           'AI & GAME ENGINE',
+    crInsp:         'ISPIRATO A',
+    crSeries:       'PARTE DELLA SERIE',
+    crSeeAlso:      'Vedi anche: ',
+    crBack:         '← MENU',
+    briefLabel:     '◈ DOSSIER RISERVATO — CIA/NSA',
+    briefContext:   '◈ CONTESTO OPERATIVO',
+    briefObj:       '◈ OBIETTIVI',
+    briefCmds:      '◈ COMANDI DISPONIBILI',
+    briefDiff:      '◈ LIVELLO DI DIFFICOLTÀ',
+    briefAccept:    '▶ ACCETTA MISSIONE — INIZIA LIVELLO',
+    briefBack:      '← TORNA AL LIVELLO',
+    diffLabels:     ['ADDESTRAMENTO','PRINCIPIANTE','AGENTE','OPERATIVO D\'ELITE'],
+    hudSec:         'SICUREZZA SISTEMA',
+    panelObj:       '◈ OBIETTIVI',
+    panelCmd:       '◈ COMANDI',
+    panelIntel:     '◈ INTEL',
+    panelThreat:    '⚠ MINACCE ATTIVE',
+    missionFailed:  '✗ MISSIONE FALLITA',
+    retryLevel:     '↺ RIPROVA QUESTO LIVELLO',
+    restartGame:    '↺ RICOMINCIA DALL\'INIZIO',
+    saveGame:       '💾 SALVA PARTITA',
+    savedOk:        '✓ Partita salvata.',
+    goMenu:         '← MENU PRINCIPALE',
+  },
+  en: {
+    menuNewGame:    '▶ NEW GAME',
+    menuNewGameSub: 'Enter agent name',
+    menuLoad:       '▶ LOAD GAME',
+    menuLoadSub:    'Continue from a save',
+    menuCredits:    '▶ CREDITS',
+    menuCreditsSub: 'Author & acknowledgements',
+    menuWelcome:    'AGENT: ',
+    nameLabel:      'ENTER AGENT NAME',
+    nameConfirm:    '▶ CONFIRM',
+    nameBack:       '← BACK',
+    loadTitle:      '◈ LOAD GAME ◈',
+    loadBack:       '← BACK',
+    loadEmpty:      'Empty slot',
+    loadDelete:     '✕',
+    loadLv:         'Level',
+    loadSec:        'Security',
+    crDev:          'DESIGN & DEVELOPMENT',
+    crAI:           'AI & GAME ENGINE',
+    crInsp:         'INSPIRED BY',
+    crSeries:       'PART OF THE SERIES',
+    crSeeAlso:      'See also: ',
+    crBack:         '← MENU',
+    briefLabel:     '◈ CLASSIFIED DOSSIER — CIA/NSA',
+    briefContext:   '◈ OPERATIONAL CONTEXT',
+    briefObj:       '◈ OBJECTIVES',
+    briefCmds:      '◈ AVAILABLE COMMANDS',
+    briefDiff:      '◈ DIFFICULTY LEVEL',
+    briefAccept:    '▶ ACCEPT MISSION — START LEVEL',
+    briefBack:      '← BACK TO LEVEL',
+    diffLabels:     ['TRAINING','BEGINNER','AGENT','ELITE OPERATIVE'],
+    hudSec:         'SYSTEM SECURITY',
+    panelObj:       '◈ OBJECTIVES',
+    panelCmd:       '◈ COMMANDS',
+    panelIntel:     '◈ INTEL',
+    panelThreat:    '⚠ ACTIVE THREATS',
+    missionFailed:  '✗ MISSION FAILED',
+    retryLevel:     '↺ RETRY THIS LEVEL',
+    restartGame:    '↺ RESTART FROM BEGINNING',
+    saveGame:       '💾 SAVE GAME',
+    savedOk:        '✓ Game saved.',
+    goMenu:         '← MAIN MENU',
+  }
+};
+
+function t(key) { return (T[lang] || T.it)[key] || key; }
+
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('kgb_lang', l);
+  sfx('click');
+  applyLangToUI();
+  renderMenuItems();
+  // Update options screen labels immediately if visible
+  refreshOptionsUI();
+}
+
+function applyLangToUI() {
+  $('hud-sec-label').textContent    = t('hudSec');
+  $('panel-obj-title').textContent  = t('panelObj');
+  $('panel-cmd-title').textContent  = t('panelCmd');
+  $('panel-intel-title').textContent= t('panelIntel');
+  $('panel-threat-title').textContent=t('panelThreat');
+  $('name-label-txt').textContent   = t('nameLabel');
+  $('btn-name-ok').textContent      = t('nameConfirm');
+  $('btn-name-back').textContent    = t('nameBack');
+  $('load-title-txt').textContent   = t('loadTitle');
+  $('btn-load-back').textContent    = t('loadBack');
+  $('cr-dev').textContent           = t('crDev');
+  $('cr-ai').textContent            = t('crAI');
+  $('cr-insp').textContent          = t('crInsp');
+  $('cr-series').textContent        = t('crSeries');
+  $('cr-see-also').innerHTML        = t('crSeeAlso') + '<span style="color:var(--pg);">Neuro Arena</span>';
+  $('btn-credits-back').textContent = t('crBack');
+}
+
+// ══════════════════════════════════════════
+//  SAVE SYSTEM
+// ══════════════════════════════════════════
+const SAVE_KEY = 'kgb_saves';
+const NUM_SLOTS = 3;
+
+function getSaves() {
+  try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; }
+  catch(e) { return {}; }
+}
+
+function getNarrativeTag() {
+  const isEn = lang === 'en';
+  const lv = currentLevel;
+  const done = (i) => gs.objectives && gs.objectives[i] === 'done';
+
+  if (lv === 0) return isEn ? 'TRAINING' : 'ADDESTRAMENTO';
+
+  if (lv === 1) {
+    if (done(4)) return isEn ? 'AGENT IDENTIFIED' : 'AGENTE IDENTIFICATO';
+    if (done(3)) return isEn ? 'HONEYPOT ACTIVE' : 'HONEYPOT ATTIVO';
+    if (done(2)) return isEn ? 'CONNECTION TRACED' : 'CONNESSIONE TRACCIATA';
+    if (done(1)) return isEn ? 'ACCOUNT FOUND' : 'ACCOUNT TROVATO';
+    return isEn ? 'INVESTIGATION STARTED' : 'INDAGINE AVVIATA';
+  }
+  if (lv === 2) {
+    if (done(4)) return isEn ? 'EVIDENCE TRANSMITTED' : 'PROVE TRASMESSE';
+    if (done(3)) return isEn ? 'MOLE CONFIRMED' : 'TALPA CONFERMATA';
+    if (done(2)) return isEn ? 'PAYLOAD DECRYPTED' : 'PAYLOAD DECIFRATO';
+    if (done(1)) return isEn ? 'NODE INTERCEPTED' : 'NODO INTERCETTATO';
+    return isEn ? 'NETWORK SCANNED' : 'RETE SCANSIONATA';
+  }
+  if (lv === 3) {
+    if (done(4)) return isEn ? 'CHOICE MADE' : 'SCELTA EFFETTUATA';
+    if (done(3)) return isEn ? 'ARCHIVE DOWNLOADED' : 'ARCHIVIO SCARICATO';
+    if (done(2)) return isEn ? 'DIRS SCANNED' : 'DIR SCANSIONATE';
+    if (done(1)) return isEn ? 'PRIVILEGES ESCALATED' : 'PRIVILEGI ESCALATI';
+    return isEn ? 'SYSTEM ACCESSED' : 'SISTEMA ACCEDUTO';
+  }
+  return '—';
+}
+
+function saveGame(slot, data) {
+  const saves = getSaves();
+  saves[slot] = { ...data, narrativeTag: getNarrativeTag(), savedAt: new Date().toLocaleString() };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(saves));
+}
+
+function deleteSave(slot) {
+  const saves = getSaves();
+  delete saves[slot];
+  localStorage.setItem(SAVE_KEY, JSON.stringify(saves));
+}
+
+function hasSaves() {
+  const s = getSaves();
+  return Object.keys(s).length > 0;
+}
+
+// ── SAVE OVERLAY (rendered inside terminal output) ──────────────────
+function renderSaveSlots(onLoad) {
+  const saves = getSaves();
+  const el = $('save-slots');
+  el.innerHTML = '';
+  for (let i = 1; i <= NUM_SLOTS; i++) {
+    const s = saves[i];
+    const div = document.createElement('div');
+    div.className = 'save-slot' + (s ? '' : ' empty');
+    if (s) {
+      const info = document.createElement('div');
+      info.className = 'save-info';
+
+      const name = document.createElement('span');
+      name.className = 'sn';
+      // Narrative tag as the headline identity of the save
+      const tag = s.narrativeTag || '—';
+      name.textContent = `◈ ${tag}`;
+
+      const detail = document.createElement('span');
+      detail.className = 'sd';
+      detail.textContent = `${s.playerName || 'AGENTE'} · ${t('loadLv')} ${s.level} · ${t('loadSec')} ${s.security}% · ${s.savedAt}`;
+
+      const del = document.createElement('span');
+      del.className = 'save-delete';
+      del.textContent = t('loadDelete');
+      del.addEventListener('click', e => { e.stopPropagation(); sfx('fail'); deleteSave(i); renderSaveSlots(onLoad); });
+
+      info.appendChild(name);
+      info.appendChild(detail);
+      div.appendChild(info);
+      div.appendChild(del);
+      div.addEventListener('click', () => { sfx('success'); onLoad(s, i); });
+    } else {
+      const info = document.createElement('div');
+      info.className = 'save-info';
+      const empty = document.createElement('span');
+      empty.className = 'sn';
+      empty.style.color = 'var(--pd)';
+      empty.textContent = `[${i}] ${t('loadEmpty')}`;
+      info.appendChild(empty);
+      div.appendChild(info);
+    }
+    el.appendChild(div);
+  }
+}
+
+function deleteSaveSlot(i) {
+  sfx('fail');
+  deleteSave(i);
+  renderSaveSlots(loadFromSave);
+}
+
+function showLoadScreen() {
+  sfx('click');
+  hideAllScreens();
+  $('screen-load').classList.remove('hidden');
+  renderSaveSlots(loadFromSave);
+}
+
+// Load from save: restore player + stats, then show briefing for that level
+function loadFromSave(save) {
+  playerName      = save.playerName || 'AGENTE';
+  currentSaveSlot = save.slot || 1;
+  _pendingLoadSave = {
+    level: save.level,
+    security: save.security,
+    threatsBlocked: save.threatsBlocked,
+    slot: save.slot,
+  };
+  showBriefing(save.level);
+}
+
+// ── IN-GAME SAVE OVERLAY ─────────────────────────────────────────────
+// Shows a small slot-picker overlay on the terminal; player types 1/2/3 to confirm
+
+function showSaveOverlay() {
+  if (!currentLevel) return;
+  saveOverlayActive = true;
+  inputDisabled = true;
+
+  const saves = getSaves();
+  const isEn  = lang === 'en';
+  const title = isEn ? '── SAVE GAME ──' : '── SALVA PARTITA ──';
+
+  print(`<span class="w">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`);
+  print(`<span class="w">${title}</span>`);
+  for (let i = 1; i <= NUM_SLOTS; i++) {
+    const s = saves[i];
+    if (s) {
+      const tag = s.narrativeTag || '—';
+      print(`<span class="w">[${i}]</span> <span class="s">◈ ${tag}</span> <span style="color:var(--pd);font-size:.75em;">· ${s.playerName} · Lv${s.level} · ${s.security}%</span>`);
+    } else {
+      print(`<span class="w">[${i}]</span> <span style="color:var(--pd);">${isEn?'Empty slot':'Slot vuoto'}</span>`);
+    }
+  }
+  print(`<span class="w">[0]</span> <span style="color:var(--pd);">${isEn?'Cancel':'Annulla'}</span>`);
+  print(`<span class="g">${isEn?'Choose slot (0-3):':'Scegli slot (0-3):'}</span>`);
+
+  // one-shot slot listener
+  const slotHandler = (e) => {
+    // Only handle single digit keys 0-3
+    if (!['0','1','2','3'].includes(e.key)) return;
+    e.preventDefault();
+    document.removeEventListener('keydown', slotHandler);
+    saveOverlayActive = false;
+    inputDisabled = false;
+    const slot = parseInt(e.key);
+    if (slot === 0) { print(`<span class="g">${isEn?'Save cancelled.':'Salvataggio annullato.'}</span>`); $('inp').focus(); return; }
+    currentSaveSlot = slot;
+    saveGame(slot, {
+      playerName,
+      level: currentLevel,
+      security: gs.security,
+      threatsBlocked: gs.threatsBlocked,
+      slot,
+    });
+    const savedTag = getNarrativeTag();
+    print(`<span class="s">✓ ${isEn?'Saved':'Salvato'}: <b>${savedTag}</b> → ${isEn?'slot':'slot'} ${slot}</span>`);
+    sfx('transmit');
+    renderMenuItems();
+    $('inp').focus();
+  };
+  document.addEventListener('keydown', slotHandler);
+}
+
+function quickSave() {
+  showSaveOverlay();
+}
+
+let playerName = localStorage.getItem('kgb_player') || '';
+let currentSaveSlot  = null;
+let _pendingLoadSave = null;
+let saveOverlayActive = false;
+
+// ══════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+// Parse HTML safely via DOMParser — avoids innerHTML locker detection
+function parseHTML(html) {
+  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html');
+  const frag = document.createDocumentFragment();
+  doc.body.firstChild.childNodes.forEach(n => frag.appendChild(n.cloneNode(true)));
+  return frag;
+}
+
+function printLine(html, container) {
+  const d = document.createElement('div');
+  d.style.marginBottom = '2px';
+  d.appendChild(parseHTML(html));
+  container.appendChild(d);
+  container.scrollTop = container.scrollHeight;
+}
+
+function print(html, delay=0) {
+  return new Promise(r => setTimeout(() => {
+    const el = $('out');
+    if (!el) { r(); return; }
+    printLine(html, el);
+    r();
+  }, delay));
+}
+
+function printSeq(lines, step=420, base=0) {
+  if (step === 0) {
+    const el = $('out');
+    if (!el) return 0;
+    lines.forEach(l => printLine(l, el));
+    return 0;
+  }
+  lines.forEach((l,i) => print(l, base + i*step));
+  return base + lines.length * step;
+}
+
+function rand(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function randInt(a,b) { return Math.floor(Math.random()*(b-a+1))+a; }
+
+function hideAllScreens() {
+  ['screen-boot','screen-menu','screen-name','screen-load','screen-credits','screen-briefing','screen-trans','screen-options'].forEach(id => {
+    $(id).classList.add('hidden');
+  });
+  $('game').style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════
+let gs = {};
+let currentLevel = 0;
+let threatInterval = null;
+let timerInterval = null;
+let inputDisabled = false;
+
+function initState(lvl) {
+  cleanupGame();
+  gs = {
+    level: lvl,
+    objectives: [],
+    security: lvl===0?100:lvl===1?72:lvl===2?55:60,
+    honeypotName:null,honeypotCreated:false,logDone:false,traceDone:false,targetUser:null,targetCity:null,
+    nodes:[],hotNode:null,interceptedNode:null,capturedCode:null,decryptKey:null,decrypted:false,moleId:null,moleConfirmed:false,
+    accessLevel:0,archivePath:null,archiveFound:false,archiveDownloaded:false,burnCode:null,choiceMade:null,exfilRoute:null,dirScanned:false,
+    threatsBlocked:0,threatsPending:0,timeLeft:null,
+    // lv0 tutorial state
+    tutStep:0,
+    drillActive:false, drillInterval:null, drillTimeLeft:0,
+  };
+}
+
+// ══════════════════════════════════════════
+//  GAUGE
+// ══════════════════════════════════════════
+function setGauge(val) {
+  gs.security = Math.max(0, Math.min(100, val));
+  const g = $('gauge');
+  g.style.width = gs.security + '%';
+  g.className = 'gauge-fill ' + (gs.security > 50 ? 'ok' : gs.security > 25 ? 'warn' : 'crit');
+  if (gs.security <= 0) triggerGameOver(lang==='en'?'System security depleted. KGB detected the intrusion.':'Sicurezza del sistema azzerata. Il KGB ha rilevato l\'intrusione.');
+}
+
+function gainSecurity(n) { setGauge(gs.security + n); }
+function loseSecurity(n) { setGauge(gs.security - n); sfx('warning'); }
+
+// ══════════════════════════════════════════
+//  OBJECTIVES
+// ══════════════════════════════════════════
+function loadObjectives(list) {
+  gs.objectives = list.map(() => 'pending');
+  const el = $('obj-list');
+  el.innerHTML = '';
+  list.forEach((text, i) => {
+    const d = document.createElement('div');
+    d.className = 'obj';
+    const chk = document.createElement('div');
+    chk.className = 'chk';
+    chk.id = `chk-${i}`;
+    const span = document.createElement('span');
+    span.textContent = text;
+    d.appendChild(chk);
+    d.appendChild(span);
+    el.appendChild(d);
+  });
+}
+
+function completeObj(i) {
+  if (gs.objectives[i] === 'done') return;
+  gs.objectives[i] = 'done';
+  const c = $(`chk-${i}`);
+  if (c) { c.classList.add('done'); c.textContent = '✓'; }
+  gainSecurity(7);
+  sfx('success');
+}
+
+function failObj(i) {
+  gs.objectives[i] = 'fail';
+  const c = $(`chk-${i}`);
+  if (c) { c.classList.add('fail'); c.textContent = '✗'; }
+}
+
+// ══════════════════════════════════════════
+//  INTEL
+// ══════════════════════════════════════════
+function addIntel(text) {
+  $('intel-panel').style.display = 'block';
+  const d = document.createElement('div');
+  const arrow = document.createElement('span');
+  arrow.className = 's';
+  arrow.textContent = '▸';
+  d.appendChild(arrow);
+  d.appendChild(document.createTextNode(' ' + text));
+  $('intel-list').appendChild(d);
+}
+
+// ══════════════════════════════════════════
+//  THREATS
+// ══════════════════════════════════════════
+const threats_it = {
+  1: [
+    { msg:'⚠ hunter sta cancellando i log di sistema!', penalty:14, hint:'Digita <b>locklog</b> per proteggere i log.' },
+    { msg:'⚠ Rilevata scansione delle tue porte da remoto!', penalty:10, hint:'Digita <b>firewall</b> per bloccare la scansione.' },
+    { msg:'⚠ L\'intruso tenta di leggere /etc/shadow!', penalty:12, hint:'Digita <b>chmod</b> per proteggere il file.' },
+  ],
+  2: [
+    { msg:'⚠ SMERSH-7 sta cifrando il canale! Segnale in degrado.', penalty:15, hint:'Digita <b>boost</b> per amplificare il segnale.' },
+    { msg:'⚠ Counter-intelligence: tentativo di tracciare la tua posizione!', penalty:12, hint:'Digita <b>reroute</b> per mascherare l\'IP.' },
+    { msg:'⚠ Nodo STASI sta eliminando le trasmissioni!', penalty:18, hint:'Digita <b>snapshot</b> per salvare i dati.' },
+  ],
+  3: [
+    { msg:'⚠ ALFA-7 rilevato: pattuglia KGB nel corridoio 3!', penalty:16, hint:'Digita <b>divert</b> per deviare la pattuglia.' },
+    { msg:'⚠ Anomalia login rilevata da SVRB-Monitor!', penalty:13, hint:'Digita <b>spoof</b> per mascherare l\'identità.' },
+    { msg:'⚠ Trasmissione di emergenza in chiaro dal tuo terminale!', penalty:18, hint:'Digita <b>silence</b> per silenziare il segnale.' },
+  ],
+};
+const threats_en = {
+  1: [
+    { msg:'⚠ hunter is deleting system logs!', penalty:14, hint:'Type <b>locklog</b> to protect the logs.' },
+    { msg:'⚠ Remote port scan detected!', penalty:10, hint:'Type <b>firewall</b> to block the scan.' },
+    { msg:'⚠ Intruder attempting to read /etc/shadow!', penalty:12, hint:'Type <b>chmod</b> to protect the file.' },
+  ],
+  2: [
+    { msg:'⚠ SMERSH-7 is encrypting the channel! Signal degrading.', penalty:15, hint:'Type <b>boost</b> to amplify the signal.' },
+    { msg:'⚠ Counter-intelligence: tracing your position!', penalty:12, hint:'Type <b>reroute</b> to mask your IP.' },
+    { msg:'⚠ STASI node is deleting transmissions!', penalty:18, hint:'Type <b>snapshot</b> to save the data.' },
+  ],
+  3: [
+    { msg:'⚠ ALFA-7 detected: KGB patrol in corridor 3!', penalty:16, hint:'Type <b>divert</b> to reroute the patrol.' },
+    { msg:'⚠ Login anomaly detected by SVRB-Monitor!', penalty:13, hint:'Type <b>spoof</b> to mask identity.' },
+    { msg:'⚠ Emergency transmission in clear from your terminal!', penalty:18, hint:'Type <b>silence</b> to suppress the signal.' },
+  ],
+};
+
+function getThreats(lv) { return (lang==='en' ? threats_en : threats_it)[lv]; }
+
+function startThreats() {
+  const pool = getThreats(currentLevel);
+  threatInterval = setInterval(() => {
+    if (inputDisabled) return;
+    const t = rand(pool);
+    gs.threatsPending++;
+    updateThreatPanel();
+    sfx('threat');
+    print(`<span class="d">${t.msg}</span>`);
+    print(`<span class="w">${t.hint}</span>`);
+    const snap = gs.threatsPending;
+    setTimeout(() => {
+      if (gs.threatsPending >= snap && !inputDisabled) {
+        loseSecurity(t.penalty);
+        gs.threatsPending = Math.max(0, gs.threatsPending - 1);
+        updateThreatPanel();
+        print(`<span class="d">⚠ ${lang==='en'?'Late response — system compromised':'Risposta tardiva — sistema compromesso'} (-${t.penalty}%)</span>`);
+      }
+    }, 20000);
+  }, randInt(25000, 40000));
+}
+
+const threatResolveMap = {
+  locklog: { lv:1, msg_it:'Log di sistema protetti. Accesso in sola lettura attivato.', msg_en:'System logs protected. Read-only mode activated.', gain:10 },
+  firewall:{ lv:1, msg_it:'Firewall aggiornato. Scansione bloccata.', msg_en:'Firewall updated. Scan blocked.', gain:9 },
+  chmod:   { lv:1, msg_it:'Permessi /etc/shadow corretti. File protetto.', msg_en:'/etc/shadow permissions fixed. File protected.', gain:8 },
+  boost:   { lv:2, msg_it:'Segnale amplificato. Canale ripristinato.', msg_en:'Signal amplified. Channel restored.', gain:11 },
+  reroute: { lv:2, msg_it:'Connessione re-instradata via Stoccolma. IP mascherato.', msg_en:'Connection rerouted via Stockholm. IP masked.', gain:10 },
+  snapshot:{ lv:2, msg_it:'Snapshot trasmissioni salvato in buffer locale.', msg_en:'Transmission snapshot saved to local buffer.', gain:12 },
+  divert:  { lv:3, msg_it:'Pattuglia deviata verso settore C. Corridoio libero.', msg_en:'Patrol diverted to sector C. Corridor clear.', gain:11 },
+  spoof:   { lv:3, msg_it:'Identità mascherata come "OPERATOR_GRIGORIEV".', msg_en:'Identity spoofed as "OPERATOR_GRIGORIEV".', gain:10 },
+  silence: { lv:3, msg_it:'Trasmissione soppressa. Segnale cifrato.', msg_en:'Transmission suppressed. Signal encrypted.', gain:12 },
+};
+
+function resolveThreats(cmd) {
+  const r = threatResolveMap[cmd];
+  if (r && r.lv === currentLevel && gs.threatsPending > 0) {
+    gs.threatsPending = Math.max(0, gs.threatsPending - 1);
+    gs.threatsBlocked++;
+    updateThreatPanel();
+    gainSecurity(r.gain);
+    const msg = lang==='en' ? r.msg_en : r.msg_it;
+    print(`<span class="s">✓ ${msg} (+${r.gain}%)</span>`);
+    return true;
+  }
+  return false;
+}
+
+function updateThreatPanel() {
+  const p = $('threat-panel'); const l = $('threat-list');
+  const isEn = lang==='en';
+  const activeLabel = isEn?'Active':'Attive';
+  const blockedLabel = isEn?'Blocked':'Bloccate';
+  p.style.display = gs.threatsPending > 0 ? 'block' : p.style.display;
+  l.innerHTML = '';
+  l.appendChild(parseHTML(
+    gs.threatsPending > 0
+      ? `${activeLabel}: <span class="d">${gs.threatsPending}</span> | ${blockedLabel}: <span class="s">${gs.threatsBlocked}</span>`
+      : `${activeLabel}: <span class="s">0</span> | ${blockedLabel}: <span class="s">${gs.threatsBlocked}</span>`
+  ));
+}
+
+// ══════════════════════════════════════════
+//  TIMER
+// ══════════════════════════════════════════
+function startTimer(seconds) {
+  gs.timeLeft = seconds;
+  $('hud-timer-wrap').style.display = 'block';
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    gs.timeLeft--;
+    updateTimerDisplay();
+    if (gs.timeLeft === 60) { sfx('warning'); sfx('warning'); }
+    if (gs.timeLeft <= 0) {
+      clearInterval(timerInterval);
+      sfx('gameover');
+      const msg2 = lang==='en' ? 'Time expired. SMERSH-7 exfiltrated the data before you could act.' : 'Tempo scaduto. SMERSH-7 ha esportato i dati prima che potessi agire.';
+      const msg3 = lang==='en' ? 'Time expired. VENONA archive destroyed. Agent identities lost.' : 'Tempo scaduto. L\'archivio VENONA è stato distrutto. Le identità degli agenti sono perdute.';
+      triggerGameOver(currentLevel===2 ? msg2 : msg3);
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = String(Math.floor(gs.timeLeft/60)).padStart(2,'0');
+  const s = String(gs.timeLeft%60).padStart(2,'0');
+  const t = $('hud-timer');
+  t.textContent = `${m}:${s}`;
+  t.className = gs.timeLeft < 60 ? 'd' : gs.timeLeft < 120 ? 'w' : 's';
+}
+
+// ══════════════════════════════════════════
+//  GAME OVER / WIN
+// ══════════════════════════════════════════
+
+// Central cleanup — called everywhere game stops
+function cleanupGame() {
+  [threatInterval, timerInterval, ambiInterval].forEach(id => clearInterval(id));
+  threatInterval = null; timerInterval = null; ambiInterval = null;
+  // Clear tutorial drill countdown if active
+  if (gs && gs.drillInterval) { clearInterval(gs.drillInterval); gs.drillInterval = null; }
+  $('alert-flash').classList.remove('show');
+  inputDisabled = false;
+  saveOverlayActive = false;
+}
+
+function triggerGameOver(reason) {
+  cleanupGame();
+  inputDisabled = true;
+  sfx('gameover');
+  const secLabel = lang==='en'?'Final security':'Sicurezza finale';
+  const thrLabel = lang==='en'?'Threats blocked':'Minacce bloccate';
+  showModal(`
+    <h2 class="d">${t('missionFailed')}</h2>
+    <p>${reason}</p>
+    <p>${secLabel}: <span class="d">${gs.security}%</span> | ${thrLabel}: <span class="w">${gs.threatsBlocked}</span></p>
+    <button class="btn" onclick="showBriefing(${currentLevel})">${t('retryLevel')}</button>
+    <button class="btn" onclick="showBriefing(1)">${t('restartGame')}</button>
+    <button class="btn" onclick="backToMenu()" style="font-size:.75rem;color:var(--pd);border-color:var(--dark);">${t('goMenu')}</button>
+  `);
+}
+
+function triggerWin(html) {
+  cleanupGame();
+  inputDisabled = true;
+  sfx('levelup');
+  showModal(html);
+}
+
+function showModal(html) { $('modal-body').innerHTML = html; $('modal').classList.add('active'); }
+function closeModal() { $('modal').classList.remove('active'); }
+
+function backToMenu() {
+  cleanupGame();
+  closeModal();
+  document.body.classList.remove('lv3');
+  showMainMenu();
+}
+
+function confirmExit() {
+  sfx('warning');
+  const isEn = lang === 'en';
+  showModal(`
+    <h2 class="w">⚠ ${isEn ? 'EXIT TO MENU' : 'TORNA AL MENU'}</h2>
+    <p>${isEn ? 'Progress will be lost unless you saved. Continue?' : 'I progressi non salvati andranno persi. Continuare?'}</p>
+    <button class="btn" onclick="backToMenu()">✕ ${isEn ? 'EXIT — LOSE PROGRESS' : 'ESCI — PERDI PROGRESSI'}</button>
+    <button class="btn" onclick="showSaveOverlay();closeModal();">💾 ${isEn ? 'SAVE FIRST, THEN EXIT' : 'SALVA PRIMA, POI ESCI'}</button>
+    <button class="btn" onclick="closeModal()" style="font-size:.75rem;color:var(--pd);border-color:var(--dark);">← ${isEn ? 'CANCEL' : 'ANNULLA'}</button>
+  `);
+}
+
+// ESC key — open exit confirm from anywhere in-game
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('game').style.display === 'block' && !saveOverlayActive) {
+    if ($('modal').classList.contains('active')) { closeModal(); return; }
+    confirmExit();
+  }
+});
+
+// ══════════════════════════════════════════
+//  MAIN MENU
+// ══════════════════════════════════════════
+function showMainMenu() {
+  hideAllScreens();
+  $('screen-menu').classList.remove('hidden');
+  applyLangToUI();
+  renderMenuItems();
+  startMenuMusic();
+}
+
+function renderMenuItems() {
+  const el = $('menu-items');
+  const hasLoad = hasSaves();
+  const isEn = lang==='en';
+  el.innerHTML = '';
+
+  const items = [
+    { label: t('menuNewGame'), sub: t('menuNewGameSub'), fn: showNameScreen, disabled: false },
+    { label: t('menuLoad'),    sub: t('menuLoadSub'),    fn: showLoadScreen, disabled: !hasLoad },
+    { label: isEn?'OPTIONS':'OPZIONI', sub: isEn?'Language, audio, text':'Lingua, audio, testo', fn: showOptions, disabled: false },
+    { label: t('menuCredits'), sub: t('menuCreditsSub'), fn: showCredits,    disabled: false },
+  ];
+
+  items.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'menu-item' + (item.disabled ? ' disabled' : '');
+    if (item.disabled) btn.disabled = true;
+
+    const icon = document.createElement('span');
+    icon.className = 'mi-icon'; icon.textContent = '▶';
+    const lbl = document.createElement('span');
+    lbl.textContent = item.label;
+    const right = document.createElement('span');
+    right.className = 'mi-right'; right.textContent = item.sub;
+
+    btn.appendChild(icon); btn.appendChild(lbl); btn.appendChild(right);
+
+    if (!item.disabled) {
+      btn.addEventListener('mouseenter', () => sfx('hover'));
+      btn.addEventListener('click', () => { sfx('click'); item.fn(); });
+    }
+    el.appendChild(btn);
+  });
+}
+
+// ══════════════════════════════════════════
+//  NAME SCREEN
+// ══════════════════════════════════════════
+function showNameScreen() {
+  sfx('click');
+  hideAllScreens();
+  $('screen-name').classList.remove('hidden');
+  setTimeout(() => $('name-inp').focus(), 100);
+}
+
+function confirmName() {
+  const val = $('name-inp').value.trim().toUpperCase();
+  if (!val) { sfx('fail'); $('name-inp').focus(); return; }
+  sfx('success');
+  playerName = val;
+  localStorage.setItem('kgb_player', val);
+  currentSaveSlot = null;
+  $('name-inp').value = '';
+  startLevel(0);
+}
+
+$('name-inp').addEventListener('keypress', e => {
+  if (e.key === 'Enter') confirmName();
+  else sfx('typekey');
+});
+
+// ══════════════════════════════════════════
+//  CREDITS
+// ══════════════════════════════════════════
+function showCredits() {
+  sfx('click');
+  hideAllScreens();
+  applyLangToUI();
+  $('screen-credits').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+//  BRIEFINGS
+// ══════════════════════════════════════════
+const briefings_it = {
+  0: {
+    title:'LIVELLO 0 — ADDESTRAMENTO',
+    sub:'NSA Training Facility | Prima del campo',
+    difficulty:0,
+    context:`Prima di ogni missione, un agente deve conoscere il contesto storico e padroneggiare gli strumenti. Questo è l'addestramento — nessuna minaccia reale, nessun timer. Solo tu e il terminale.`,
+    context2:`Imparerai la storia della Guerra Fredda, le meccaniche del gioco e come rispondere alle minacce. Ogni passo è guidato.`,
+    objectives:['Ricevi il briefing storico (storia)','Studia le meccaniche del terminale (sistema)','Naviga il file system (ls)','Leggi un documento classificato (read)','Simula una risposta a minaccia (drill)'],
+    commands:[{cmd:'storia',desc:'contesto Guerra Fredda'},{cmd:'sistema',desc:'meccaniche terminale'},{cmd:'ls',desc:'elenca file'},{cmd:'read',desc:'leggi documento'},{cmd:'drill',desc:'simulazione minaccia'},{cmd:'locklog',desc:'rispondi alla minaccia'}],
+    threats:'nessuna (è solo addestramento)',
+    warning:'⚠ Nessuna penalità in questo livello. Prenditi il tempo che ti serve.',
+  },
+  1: {
+    title:'LIVELLO 1 — THE CUCKOO\'S EGG',
+    sub:'23 Agosto 1986 | Lawrence Berkeley Laboratory, California',
+    difficulty:1,
+    context:`Una discrepanza di $0.75 nei registri contabili del sistema. Irrilevante? No. Cliff Stoll, astronomo e sysadmin del LBL, decide di indagare. Quello che scoprirà cambierà per sempre la sicurezza informatica.`,
+    context2:`Un hacker ignoto ha usato account non autorizzati per penetrare nelle reti militari USA. Il tuo compito: tracciare la connessione, costruire una trappola e incriminarlo.`,
+    objectives:['Analizza i log contabili per trovare la discrepanza','Identifica l\'account non autorizzato','Traccia la connessione via TYMNET fino all\'Europa','Costruisci un honeypot con documenti SDI fasulli','Monitora l\'intruso e ottieni prove per l\'FBI'],
+    commands:[{cmd:'log',desc:'analizza log contabili'},{cmd:'trace',desc:'traccia connessione'},{cmd:'ls',desc:'elenca directory'},{cmd:'mkdir [nome]',desc:'crea honeypot'},{cmd:'monitor',desc:'sorveglia l\'intruso'},{cmd:'status',desc:'stato sistema'}],
+    threats:'locklog / firewall / chmod',
+    warning:'⚠ Il sistema è già compromesso. Ogni azione deve essere silenziosa — l\'intruso non deve sapere di essere monitorato.',
+  },
+  2: {
+    title:'LIVELLO 2 — OPERAZIONE MAUER',
+    sub:'7 Novembre 1989 | BND Gateway, Berlino Ovest',
+    difficulty:2,
+    context:`Marcus Hess è stato arrestato. Ma la rete KGB è ancora attiva. Un agente noto come SMERSH-7 sta esfiltrando archivi riservati BND verso Mosca. Hai 8 minuti prima che i dati attraversino il confine.`,
+    context2:`Il flusso è: scan → intercept → decrypt → analyze → transmit. La chiave di decifratura apparirà automaticamente dopo l'intercettazione. Gestisci le minacce mentre lavori.`,
+    objectives:['Scansiona la rete STASI — trova il nodo attivo (scan)','Intercetta il nodo segnalato (intercept [nodo])','Decifra il payload con la chiave mostrata (decrypt [chiave])','Identifica la talpa nella BND (analyze)','Trasmetti le prove prima della scadenza (transmit)'],
+    commands:[{cmd:'scan',desc:'scansiona nodi STASI'},{cmd:'intercept [nodo]',desc:'intercetta nodo target'},{cmd:'decrypt [chiave]',desc:'decifra payload'},{cmd:'analyze',desc:'identifica talpa'},{cmd:'transmit',desc:'invia prove'}],
+    threats:'boost / reroute / snapshot',
+    warning:'⚠ Hai 8 minuti. Dopo scan, la chiave di decifratura ti viene fornita direttamente — non devi calcolarla.',
+  },
+  3: {
+    title:'LIVELLO 3 — GHOST PROTOCOL',
+    sub:'19 Agosto 1991 | Centro KGB, Mosca — Colpo di Stato',
+    difficulty:3,
+    context:`Il golpe è iniziato. I carri armati circondano il Cremlino. Nel caos, hai 10 minuti per infiltrarti nel sistema interno del KGB e recuperare l\'archivio VENONA — l\'elenco di tutte le spie sovietiche in Occidente.`,
+    context2:`Il sistema usa permessi a livelli. Dovrai fare escalation dei privilegi. Alla fine ti verrà chiesta una scelta irreversibile che cambierà la storia.`,
+    objectives:['Accedi al sistema con login guest','Ottieni accesso livello 2 con escalate','Scansiona le directory riservate con scan','Scarica l\'archivio VENONA con download','Scegli il destino dell\'archivio (choice)'],
+    commands:[{cmd:'login [utente]',desc:'accedi al sistema'},{cmd:'escalate',desc:'eleva privilegi'},{cmd:'scan',desc:'scansiona directory'},{cmd:'download [path]',desc:'scarica archivio'},{cmd:'verify',desc:'verifica integrità'},{cmd:'choice [A/B/C]',desc:'decisione finale'}],
+    threats:'divert / spoof / silence',
+    warning:'⚠ LIVELLO AVANZATO. 10 minuti. La scelta finale è irreversibile e determina il finale.',
+  },
+};
+
+const briefings_en = {
+  0: {
+    title:'LEVEL 0 — TRAINING',
+    sub:'NSA Training Facility | Before the field',
+    difficulty:0,
+    context:`Before every mission, an agent must understand the historical context and master the tools. This is training — no real threats, no timer. Just you and the terminal.`,
+    context2:`You'll learn Cold War history, game mechanics, and how to respond to threats. Every step is guided.`,
+    objectives:['Receive the historical briefing (history)','Study the terminal mechanics (system)','Navigate the file system (ls)','Read a classified document (read)','Simulate a threat response (drill)'],
+    commands:[{cmd:'history',desc:'Cold War context'},{cmd:'system',desc:'terminal mechanics'},{cmd:'ls',desc:'list files'},{cmd:'read',desc:'read document'},{cmd:'drill',desc:'threat simulation'},{cmd:'locklog',desc:'respond to threat'}],
+    threats:'none (training only)',
+    warning:'⚠ No penalties in this level. Take your time.',
+  },
+  1: {
+    title:'LEVEL 1 — THE CUCKOO\'S EGG',
+    sub:'August 23, 1986 | Lawrence Berkeley Laboratory, California',
+    difficulty:1,
+    context:`A $0.75 discrepancy in the system accounting records. Irrelevant? No. Cliff Stoll, astronomer and sysadmin at LBL, decides to investigate. What he discovers will change cybersecurity forever.`,
+    context2:`An unknown hacker used unauthorized accounts to penetrate US military networks. Your mission: trace the connection, build a trap, and incriminate them.`,
+    objectives:['Analyze accounting logs to find the discrepancy','Identify the unauthorized account','Trace the connection via TYMNET to Europe','Build a honeypot with fake SDI documents','Monitor the intruder and gather evidence for the FBI'],
+    commands:[{cmd:'log',desc:'analyze accounting logs'},{cmd:'trace',desc:'trace connection'},{cmd:'ls',desc:'list directory'},{cmd:'mkdir [name]',desc:'create honeypot'},{cmd:'monitor',desc:'monitor intruder'},{cmd:'status',desc:'system status'}],
+    threats:'locklog / firewall / chmod',
+    warning:'⚠ The system is already compromised. Every action must be silent — the intruder must not know they are being monitored.',
+  },
+  2: {
+    title:'LEVEL 2 — OPERATION MAUER',
+    sub:'November 7, 1989 | BND Gateway, West Berlin',
+    difficulty:2,
+    context:`Marcus Hess has been arrested. But the KGB network is still active. An agent known as SMERSH-7 is exfiltrating classified BND archives to Moscow. You have 8 minutes before the data crosses the border.`,
+    context2:`The flow is: scan → intercept → decrypt → analyze → transmit. The decryption key will appear automatically after interception. Manage threats while you work.`,
+    objectives:['Scan the STASI network — find the active node (scan)','Intercept the flagged node (intercept [node])','Decrypt the payload with the shown key (decrypt [key])','Identify the BND mole (analyze)','Transmit evidence before deadline (transmit)'],
+    commands:[{cmd:'scan',desc:'scan STASI nodes'},{cmd:'intercept [node]',desc:'intercept target node'},{cmd:'decrypt [key]',desc:'decrypt payload'},{cmd:'analyze',desc:'identify mole'},{cmd:'transmit',desc:'send evidence'}],
+    threats:'boost / reroute / snapshot',
+    warning:'⚠ You have 8 minutes. After scan, the decryption key is given to you directly — no calculation needed.',
+  },
+  3: {
+    title:'LEVEL 3 — GHOST PROTOCOL',
+    sub:'August 19, 1991 | KGB Center, Moscow — Coup d\'état',
+    difficulty:3,
+    context:`The coup has begun. Tanks surround the Kremlin. In the chaos, you have 10 minutes to infiltrate the KGB internal system and retrieve the VENONA archive — the list of all Soviet spies in the West.`,
+    context2:`The system uses tiered permissions. You must escalate privileges before accessing the archive. At the end, an irreversible choice will change the course of history.`,
+    objectives:['Access the system with login guest','Gain level 2 access with escalate','Scan classified directories with scan','Download the VENONA archive with download','Choose the fate of the archive (choice)'],
+    commands:[{cmd:'login [user]',desc:'access system'},{cmd:'escalate',desc:'escalate privileges'},{cmd:'scan',desc:'scan directories'},{cmd:'download [path]',desc:'download archive'},{cmd:'verify',desc:'verify integrity'},{cmd:'choice [A/B/C]',desc:'final decision'}],
+    threats:'divert / spoof / silence',
+    warning:'⚠ ADVANCED LEVEL. 10 minutes. The final choice is irreversible and determines the ending.',
+  },
+};
+
+function getBriefing(lvl) { return (lang==='en' ? briefings_en : briefings_it)[lvl]; }
+
+function showBriefing(lvl) {
+  sfx('click');
+  closeModal();
+  hideAllScreens();
+  const b = getBriefing(lvl);
+  const pips = b.difficulty === 0 ? '<span style="font-size:.68rem;color:var(--pd);">—</span>' : [1,2,3].map(i=>`<div class="diff-pip ${i<=b.difficulty?'active'+(b.difficulty===3?' hard':''):''}"></div>`).join('');
+  $('briefing-content').innerHTML = `
+    <div class="briefing-header">
+      <div class="briefing-label">${t('briefLabel')}</div>
+      <h1>${b.title}</h1>
+      <div class="sub">${b.sub}</div>
+    </div>
+    <div class="briefing-section">
+      <h3>${t('briefContext')}</h3>
+      <p>${b.context}</p><p>${b.context2}</p>
+    </div>
+    <div class="briefing-section">
+      <h3>${t('briefObj')}</h3>
+      ${b.objectives.map((o,i)=>`<div class="briefing-obj-item"><span class="briefing-obj-num">[${i+1}]</span><span>${o}</span></div>`).join('')}
+    </div>
+    <div class="briefing-section">
+      <h3>${t('briefCmds')}</h3>
+      <div class="cmd-grid">${b.commands.map(c=>`<div class="cmd-entry"><b>${c.cmd}</b> <span>— ${c.desc}</span></div>`).join('')}</div>
+      <div style="margin-top:.6rem;font-size:.68rem;color:var(--red);">${lang==='en'?'THREAT RESPONSE':'RISPOSTA MINACCE'}: <b style="color:var(--amber);">${b.threats}</b></div>
+    </div>
+    <div class="briefing-section">
+      <h3>${t('briefDiff')}</h3>
+      <div class="diff-bar">${pips}<span style="font-size:.68rem;color:var(--pd);margin-left:.5rem;">${t('diffLabels')[b.difficulty]}</span></div>
+    </div>
+    <div class="briefing-warning">${b.warning}</div>
+    <button class="btn briefing-accept" onclick="startLevel(${lvl})">${t('briefAccept')} ${lvl}</button>
+    ${lvl>1?`<button class="btn" style="margin-top:.5rem;width:100%;font-size:.75rem;" onclick="showBriefing(${lvl-1})">${t('briefBack')} ${lvl-1}</button>`:''}
+    <button class="btn" onclick="showMainMenu()" style="margin-top:.4rem;width:100%;font-size:.72rem;color:var(--pd);border-color:var(--dark);">${t('goMenu')}</button>
+  `;
+  $('screen-briefing').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════
+//  LEVEL 0 — TUTORIAL
+// ══════════════════════════════════════════
+// Tutorial steps: each step has a required command and a narrative payoff
+const tut_it = [
+  {
+    cmd: 'storia',
+    response: [
+      `<span class="g">━━━ CONTESTO STORICO — GUERRA FREDDA ━━━</span>`,
+      `<span class="w">1947–1991. USA vs URSS.</span> Non una guerra di eserciti, ma di`,
+      `informazioni, tecnologia e spionaggio. Due blocchi opposti:`,
+      `la NATO a Ovest, il Patto di Varsavia a Est.`,
+      ``,
+      `Il <span class="d">KGB</span> (Unione Sovietica) e la <span class="s">CIA</span> (USA) si fronteggiavano`,
+      `in una battaglia silenziosa: reti di spie, codici segreti,`,
+      `intercettazioni e sabotaggio informatico.`,
+      ``,
+      `Negli anni '80 nasce una nuova arena: le <span class="w">reti informatiche</span>.`,
+      `ARPANET, MILNET, i sistemi universitari — tutto connesso,`,
+      `tutto vulnerabile. Il KGB lo sapeva. E agiva di notte.`,
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="s">✓ Briefing storico acquisito.</span>`,
+      `<span class="w">Prossimo passo: digita <b>sistema</b> per capire come funziona questo terminale.</span>`,
+    ],
+    objText: 'Leggi il briefing storico (storia)',
+  },
+  {
+    cmd: 'sistema',
+    response: [
+      `<span class="g">━━━ MANUALE OPERATIVO — IL TERMINALE ━━━</span>`,
+      `Questo è un terminale VAX/VMS anni '80. Non c'è mouse.`,
+      `<span class="w">Tutto si fa digitando comandi</span> e premendo INVIO.`,
+      ``,
+      `I <span class="s">comandi disponibili</span> sono sempre visibili nel pannello COMANDI`,
+      `a destra. Ogni livello ha i suoi comandi specifici.`,
+      ``,
+      `Il pannello <span class="s">OBIETTIVI</span> mostra cosa devi fare — seguilo in ordine.`,
+      `Il pannello <span class="s">INTEL</span> raccoglie le informazioni chiave trovate.`,
+      `La barra <span class="w">SICUREZZA SISTEMA</span> in alto misura quanto sei al sicuro:`,
+      `se scende a zero, la missione fallisce.`,
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="s">✓ Meccaniche apprese.</span>`,
+      `<span class="w">Ora prova tu: digita <b>ls</b> per vedere i file di addestramento.</span>`,
+    ],
+    objText: 'Studia le meccaniche di gioco (sistema)',
+  },
+  {
+    cmd: 'ls',
+    response: [
+      `training/   manuale_operativo.txt   roster_agenti.enc   LEGGIMI`,
+      `<span class="g">→ Una directory di addestramento NSA. File cifrati, manuali, roster.</span>`,
+      `<span class="s">✓ Navigazione file system.</span>`,
+      `<span class="w">Digita <b>read</b> per leggere il file LEGGIMI.</span>`,
+    ],
+    objText: 'Naviga il file system (ls)',
+  },
+  {
+    cmd: 'read',
+    response: [
+      `<span class="g">═══ LEGGIMI ═══</span>`,
+      `AGENTE — se stai leggendo questo file sei già nel posto giusto.`,
+      ``,
+      `Le missioni che affronterai sono basate su <span class="w">eventi reali</span>:`,
+      `└─ <span class="s">1986</span>: Cliff Stoll cattura una spia KGB via honeypot`,
+      `└─ <span class="s">1989</span>: caduta del Muro di Berlino — rete STASI smantellata`,
+      `└─ <span class="s">1991</span>: golpe URSS — archivio VENONA a rischio`,
+      ``,
+      `<span class="d">Regola d'oro</span>: leggi gli obiettivi. Segui i comandi nell'ordine`,
+      `suggerito. Rispondi alle minacce appena appaiono.`,
+      `<span class="g">═══════════════</span>`,
+      `<span class="s">✓ Documento letto.</span>`,
+      `<span class="w">Ultimo step: digita <b>drill</b> per una simulazione minaccia reale.</span>`,
+    ],
+    objText: 'Leggi il documento LEGGIMI (read)',
+  },
+  {
+    cmd: 'drill',
+    response: [], // handled specially in _l0handle
+    objText: 'Esegui drill di risposta minacce (drill)',
+  },
+];
+
+const tut_en = [
+  {
+    cmd: 'storia',
+    intro: [],
+    response: [
+      `<span class="g">━━━ HISTORICAL CONTEXT — COLD WAR ━━━</span>`,
+      `<span class="w">1947–1991. USA vs USSR.</span> Not a war of armies, but of`,
+      `information, technology and espionage. Two opposing blocs:`,
+      `NATO in the West, the Warsaw Pact in the East.`,
+      ``,
+      `The <span class="d">KGB</span> (Soviet Union) and the <span class="s">CIA</span> (USA) faced each other`,
+      `in a silent battle: spy networks, secret codes,`,
+      `interceptions and cyber sabotage.`,
+      ``,
+      `In the '80s a new arena emerged: <span class="w">computer networks</span>.`,
+      `ARPANET, MILNET, university systems — all connected,`,
+      `all vulnerable. The KGB knew it. And acted at night.`,
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="s">✓ Historical briefing acquired.</span>`,
+      `<span class="w">Next step: type <b>system</b> to understand how this terminal works.</span>`,
+    ],
+    objText: 'Read the historical briefing (history)',
+  },
+  {
+    cmd: 'system',
+    response: [
+      `<span class="g">━━━ OPERATIONS MANUAL — THE TERMINAL ━━━</span>`,
+      `This is a VAX/VMS terminal from the '80s. No mouse.`,
+      `<span class="w">Everything is done by typing commands</span> and pressing ENTER.`,
+      ``,
+      `<span class="s">Available commands</span> are always visible in the COMMANDS panel`,
+      `on the right. Each level has its own specific commands.`,
+      ``,
+      `The <span class="s">OBJECTIVES</span> panel shows what you need to do — follow in order.`,
+      `The <span class="s">INTEL</span> panel collects key information found.`,
+      `The <span class="w">SYSTEM SECURITY</span> bar at the top measures how safe you are:`,
+      `if it reaches zero, the mission fails.`,
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="s">✓ Mechanics learned.</span>`,
+      `<span class="w">Now try: type <b>ls</b> to see the training files.</span>`,
+    ],
+    objText: 'Study the game mechanics (system)',
+  },
+  {
+    cmd: 'ls',
+    response: [
+      `training/   operations_manual.txt   agent_roster.enc   README`,
+      `<span class="g">→ An NSA training directory. Encrypted files, manuals, rosters.</span>`,
+      `<span class="s">✓ File system navigation.</span>`,
+      `<span class="w">Type <b>read</b> to read the README file.</span>`,
+    ],
+    objText: 'Navigate the file system (ls)',
+  },
+  {
+    cmd: 'read',
+    response: [
+      `<span class="g">═══ README ═══</span>`,
+      `AGENT — if you're reading this file you're already in the right place.`,
+      ``,
+      `The missions you'll face are based on <span class="w">real events</span>:`,
+      `└─ <span class="s">1986</span>: Cliff Stoll catches a KGB spy via honeypot`,
+      `└─ <span class="s">1989</span>: fall of the Berlin Wall — STASI network dismantled`,
+      `└─ <span class="s">1991</span>: USSR coup — VENONA archive at risk`,
+      ``,
+      `<span class="d">Golden rule</span>: read the objectives. Follow commands in the`,
+      `suggested order. Respond to threats as soon as they appear.`,
+      `<span class="g">═══════════════</span>`,
+      `<span class="s">✓ Document read.</span>`,
+      `<span class="w">Last step: type <b>drill</b> to run a real threat simulation.</span>`,
+    ],
+    objText: 'Read the README document (read)',
+  },
+  {
+    cmd: 'drill',
+    response: [], // handled specially in _l0handle
+    objText: 'Run threat response drill (drill)',
+  },
+];
+
+function getTutorial() { return lang === 'en' ? tut_en : tut_it; }
+
+function buildLevel0() {
+  const isEn = lang === 'en';
+  const tut = getTutorial();
+  const agentName = playerName || (isEn ? 'RECRUIT' : 'RECLUTA');
+
+  loadObjectives(tut.map(s => s.objText));
+
+  const cmdItems = isEn
+    ? ['<b>history</b> — Cold War context','<b>system</b> — terminal mechanics','<b>ls</b> — list files','<b>read</b> — read a document','<b>drill</b> — threat simulation','<b>locklog</b> — respond to threat','<b>done</b> — complete training']
+    : ['<b>storia</b> — contesto Guerra Fredda','<b>sistema</b> — meccaniche terminale','<b>ls</b> — elenca file','<b>read</b> — leggi documento','<b>drill</b> — simulazione minaccia','<b>locklog</b> — rispondi alla minaccia','<b>fine</b> — completa addestramento'];
+
+  const cmdEl = $('cmd-list');
+  cmdEl.innerHTML = '';
+  cmdItems.forEach(c => {
+    const d = document.createElement('div');
+    d.appendChild(parseHTML(c));
+    cmdEl.appendChild(d);
+  });
+
+  sfx('boot');
+  const firstCmd = isEn ? 'history' : 'storia';
+  printSeq([
+    `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+    `<span class="h">◈ ${isEn ? 'TRAINING — NSA SECURITY AGENCY' : 'ADDESTRAMENTO — AGENZIA SICUREZZA NSA'}</span>`,
+    `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+    `${isEn ? 'Welcome,' : 'Benvenuto,'} <span class="s">${agentName}</span>.`,
+    `${isEn ? 'Before entering the field, you must understand the context.' : 'Prima di entrare in campo, è necessario conoscere il contesto.'}`,
+    `<span class="w">${isEn ? `Type <b>${firstCmd}</b> to receive the historical briefing.` : `Digita <b>${firstCmd}</b> per ricevere il briefing storico.`}</span>`,
+  ], 0);
+}
+
+const l0cmds = {
+  help: () => {
+    const isEn = lang === 'en';
+    print(isEn
+      ? 'Commands: history, system, ls, read, drill, locklog, done'
+      : 'Comandi: storia, sistema, ls, read, drill, locklog, fine');
+  },
+  clear: () => { $('out').innerHTML = ''; },
+  // Italian commands
+  storia:  () => _l0handle(0),
+  sistema: () => _l0handle(1),
+  ls:      () => _l0handle(2),
+  read:    () => _l0handle(3),
+  drill:   () => _l0handle(4),
+  // English aliases
+  history: () => _l0handle(0),
+  system:  () => _l0handle(1),
+  // Threat response — stops real countdown drill
+  locklog: () => {
+    const isEn = lang === 'en';
+    if (!gs.drillActive && gs.tutStep !== 4) {
+      print(`<span class="g">${isEn ? 'No active threat to respond to.' : 'Nessuna minaccia attiva da rispondere.'}</span>`);
+      return;
+    }
+    // Stop the countdown
+    clearInterval(gs.drillInterval);
+    gs.drillInterval = null;
+    gs.drillActive = false;
+    $('alert-flash').classList.remove('show');
+    $('hud-timer-wrap').style.display = 'none';
+
+    sfx('success');
+    gainSecurity(12);
+    const timeBonus = gs.drillTimeLeft || 0;
+    printSeq(isEn ? [
+      `<span class="s">✓ LOCKLOG — logs protected. Threat neutralized.</span>`,
+      `<span class="s">Response time: ${15 - timeBonus}s | Security restored (+12%)</span>`,
+      ``,
+      `<span class="w">That's exactly how it works in the field.</span>`,
+      `<span class="w">Alerts are real. The clock is real. You must react immediately.</span>`,
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="w">Type <b>done</b> to complete training and start Mission 1.</span>`,
+    ] : [
+      `<span class="s">✓ LOCKLOG — log protetti. Minaccia neutralizzata.</span>`,
+      `<span class="s">Tempo di risposta: ${15 - timeBonus}s | Sicurezza ripristinata (+12%)</span>`,
+      ``,
+      `<span class="w">Esattamente così funziona sul campo.</span>`,
+      `<span class="w">Gli alert sono reali. Il conto alla rovescia è reale. Devi reagire subito.</span>`,
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="w">Digita <b>fine</b> per completare l'addestramento e iniziare la Missione 1.</span>`,
+    ], 0);
+  },
+  fine: () => _l0finish(),
+  done: () => _l0finish(),
+};
+
+function _l0handle(stepIdx) {
+  const tut = getTutorial();
+  const isEn = lang === 'en';
+  const step = tut[stepIdx];
+
+  // Allow re-reading completed steps (except drill — don't re-trigger countdown)
+  if (gs.tutStep > stepIdx) {
+    if (stepIdx < 4) printSeq(step.response, 0);
+    else print(`<span class="g">${isEn ? 'Drill already completed.' : 'Drill già completato.'}</span>`);
+    return;
+  }
+  // Must do in order
+  if (gs.tutStep < stepIdx) {
+    const needed = tut[gs.tutStep].cmd;
+    print(`<span class="d">${isEn ? `Complete the current step first: <b>${needed}</b>` : `Completa prima il passo corrente: <b>${needed}</b>`}</span>`);
+    return;
+  }
+
+  sfx('scan');
+
+  // ── DRILL STEP (index 4) — real countdown ──
+  if (stepIdx === 4) {
+    completeObj(4);
+    gs.tutStep++;
+    gs.drillActive = true;
+    gs.drillTimeLeft = 15;
+
+    printSeq(isEn ? [
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="d">⚠ ALERT — UNAUTHORIZED ACCESS DETECTED</span>`,
+      `<span class="d">⚠ Intruder is deleting system logs!</span>`,
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="w">Security dropping. Respond now: type <b>locklog</b></span>`,
+    ] : [
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="d">⚠ ALERT — ACCESSO NON AUTORIZZATO RILEVATO</span>`,
+      `<span class="d">⚠ L'intruso sta cancellando i log di sistema!</span>`,
+      `<span class="g">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`,
+      `<span class="w">Sicurezza in calo. Rispondi subito: digita <b>locklog</b></span>`,
+    ], 0);
+
+    sfx('warning');
+    flashAlert(isEn ? '⚠ THREAT ACTIVE — type locklog NOW' : '⚠ MINACCIA ATTIVA — digita locklog ORA', 99999);
+
+    // Tick every second: update HUD timer display reusing hud-timer
+    $('hud-timer-wrap').style.display = 'block';
+    $('hud-timer').textContent = '00:15';
+    $('hud-timer').className = 'w';
+
+    gs.drillInterval = setInterval(() => {
+      gs.drillTimeLeft--;
+      const s = String(gs.drillTimeLeft).padStart(2,'0');
+      $('hud-timer').textContent = `00:${s}`;
+      $('hud-timer').className = gs.drillTimeLeft <= 5 ? 'd' : 'w';
+
+      // drain security 4% per second
+      loseSecurity(4);
+
+      if (gs.drillTimeLeft <= 0) {
+        _l0drillFail();
+      }
+    }, 1000);
+
+    return;
+  }
+
+  // Regular steps
+  printSeq(step.response, 0);
+  completeObj(stepIdx);
+  gs.tutStep++;
+}
+
+function _l0drillFail() {
+  clearInterval(gs.drillInterval);
+  gs.drillInterval = null;
+  gs.drillActive = false;
+  $('alert-flash').classList.remove('show');
+  $('hud-timer-wrap').style.display = 'none';
+  const isEn = lang === 'en';
+  sfx('fail');
+  printSeq(isEn ? [
+    `<span class="d">✗ Response too slow. Security compromised.</span>`,
+    `<span class="w">In a real mission this would cost you dearly.</span>`,
+    `<span class="g">Type <b>drill</b> again to retry — or <b>done</b> if you understand the mechanic.</span>`,
+  ] : [
+    `<span class="d">✗ Risposta troppo lenta. Sistema compromesso.</span>`,
+    `<span class="w">In una missione reale questo ti costerebbe caro.</span>`,
+    `<span class="g">Digita <b>drill</b> di nuovo per riprovare — oppure <b>fine</b> se hai capito la meccanica.</span>`,
+  ], 0);
+  // Allow retry
+  gs.tutStep = 4;
+  gs.objectives[4] = 'pending';
+  const c = $('chk-4');
+  if (c) { c.classList.remove('done'); c.textContent = ''; }
+}
+
+function _l0finish() {
+  const isEn = lang === 'en';
+  if (gs.tutStep < 4) {
+    const tut = getTutorial();
+    print(`<span class="d">${isEn ? `Complete all steps first. Next: <b>${tut[gs.tutStep].cmd}</b>` : `Completa tutti i passi prima. Prossimo: <b>${tut[gs.tutStep].cmd}</b>`}</span>`);
+    return;
+  }
+  // Complete obj 4 if not already done (drill step)
+  if (gs.objectives[4] !== 'done') completeObj(4);
+  sfx('transmit');
+  const score = gs.security;
+  setTimeout(() => triggerWin(`
+    <h2 class="s">✓ ${isEn ? 'TRAINING COMPLETE' : 'ADDESTRAMENTO COMPLETATO'}</h2>
+    <p>${isEn ? `Well done, Agent <b>${playerName||'RECRUIT'}</b>. You are ready for the field.` : `Ben fatto, Agente <b>${playerName||'RECLUTA'}</b>. Sei pronto per il campo.`}</p>
+    <p style="color:var(--pd);font-size:.78rem;line-height:1.7;">${isEn
+      ? 'Year 1986. Lawrence Berkeley Laboratory, California. A 75-cent accounting anomaly hides the trail of a KGB spy. You have the tools. Use them.'
+      : 'Anno 1986. Lawrence Berkeley Laboratory, California. Un\'anomalia contabile da 75 centesimi nasconde la traccia di una spia KGB. Hai gli strumenti. Usali.'
+    }</p>
+    <button class="btn" onclick="showBriefing(1)" style="margin-top:.8rem;">▶ ${isEn ? 'START MISSION 1 — THE CUCKOO\'S EGG' : 'INIZIA MISSIONE 1 — THE CUCKOO\'S EGG'}</button>
+    <button class="btn" onclick="startLevel(0)" style="margin-top:.4rem;font-size:.75rem;color:var(--pd);border-color:var(--dark);">↺ ${isEn ? 'REDO TRAINING' : 'RIPETI ADDESTRAMENTO'}</button>
+  `), 400);
+}
+
+// ══════════════════════════════════════════
+//  LEVEL 1
+// ══════════════════════════════════════════
+function buildLevel1() {
+  const users=['hunter','ghost7','shadow_k','kgb_net'];
+  const cities_it=['Amburgo','Hannover','Berlino'];
+  const cities_en=['Hamburg','Hanover','Berlin'];
+  const hpNames=['sdi_docs','star_wars_data','milnet_archive'];
+  gs.targetUser=rand(users);
+  gs.targetCity=lang==='en'?rand(cities_en):rand(cities_it);
+  gs.honeypotName=rand(hpNames);
+  const isEn=lang==='en';
+
+  loadObjectives(isEn?[
+    'Analyze accounting discrepancy ($0.75)',
+    'Identify suspicious account',
+    'Trace IP — locate European node',
+    `Create Honeypot (mkdir ${gs.honeypotName})`,
+    'Monitor and incriminate the intruder',
+  ]:[
+    'Analizza discrepanza contabile ($0.75)',
+    'Identifica account sospetto',
+    'Traccia IP — localizza nodo europeo',
+    `Crea Honeypot (mkdir ${gs.honeypotName})`,
+    'Monitora e incrimina l\'intruso',
+  ]);
+
+  $('cmd-list').innerHTML=(isEn?[
+    '<b>log</b> — analyze logs','<b>trace</b> — trace connection','<b>ls</b> — list files',
+    `<b>mkdir [name]</b> — create dir`,'<b>monitor</b> — monitor intruder','<b>status</b> — system status',
+    '<b>clear</b> — clear terminal','<hr style="border-color:var(--dark);margin:.3rem 0;">',
+    '<span style="color:var(--red);font-size:.65rem;">THREAT RESPONSE:</span>',
+    '<b>locklog</b> / <b>firewall</b> / <b>chmod</b>','<b>save</b> — save game',
+  ]:[
+    '<b>log</b> — analizza log','<b>trace</b> — traccia connessione','<b>ls</b> — elenca file',
+    `<b>mkdir [nome]</b> — crea directory`,'<b>monitor</b> — sorveglia','<b>status</b> — stato',
+    '<b>clear</b> — pulisci terminale','<hr style="border-color:var(--dark);margin:.3rem 0;">',
+    '<span style="color:var(--red);font-size:.65rem;">RISPOSTA MINACCE:</span>',
+    '<b>locklog</b> / <b>firewall</b> / <b>chmod</b>','<b>save</b> — salva partita',
+  ]).join('<br>');
+
+  sfx('boot');
+  printSeq(isEn?[
+    `<span class="g">Lawrence Berkeley Laboratory — VAX/VMS 4.5</span>`,
+    `<span class="g">Operator: ${playerName||'Cliff Stoll'} | Date: 08/23/1986 | 02:18</span>`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `<span class="w">⚠ $0.75 discrepancy in system accounting records.</span>`,
+    `Use <b>log</b> to start the analysis.`,
+  ]:[
+    `<span class="g">Lawrence Berkeley Laboratory — VAX/VMS 4.5</span>`,
+    `<span class="g">Operatore: ${playerName||'Cliff Stoll'} | Data: 23/08/1986 | 02:18</span>`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `<span class="w">⚠ Discrepanza di $0.75 nei record contabili di sistema.</span>`,
+    `Usa <b>log</b> per avviare l'analisi.`,
+  ], 0);
+  setTimeout(()=>startThreats(),30000);
+  startAmbi();
+}
+
+const l1cmds={
+  help:()=>print(lang==='en'?'Commands: log, trace, ls, mkdir [name], monitor, status, clear, save | Threats: locklog, firewall, chmod':'Comandi: log, trace, ls, mkdir [nome], monitor, status, clear, save | Minacce: locklog, firewall, chmod'),
+  status:()=>print(`${lang==='en'?'Security':'Sicurezza'}: ${gs.security}% | Honeypot: ${gs.honeypotCreated?'<span class="s">ON</span>':'<span class="w">OFF</span>'}`),
+  clear:()=>{$('out').innerHTML='';},
+  save:()=>quickSave(),
+  log:()=>{
+    if(gs.logDone){print(`<span class="w">${lang==='en'?'Logs already analyzed. Found user:':'Log già analizzati. Utente trovato:'} ${gs.targetUser}</span>`);return;}
+    print(`<span class="w">${lang==='en'?'Analyzing accounting logs...':'Analisi log contabili in corso...'}</span>`);
+    sfx('scan');
+    setTimeout(()=>{
+      gs.logDone=true;
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print(`${lang==='en'?'ACCESS 02:14 — user:':'ACCESSO ORE 02:14 — utente:'} <span class="d">${gs.targetUser}</span>`);
+      print(`Files: /etc/passwd, /milnet/routes, /src/sendmail`);
+      print(`${lang==='en'?'Charge: $0.00 (anomaly: -$0.75 from system account)':'Addebito: $0.00 (anomalia: -$0.75 dal conto system)'}`);
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      completeObj(0);completeObj(1);
+      addIntel(`${lang==='en'?'Suspicious account':'Account sospetto'}: "${gs.targetUser}"`);
+      print(`<span class="s">✓ ${lang==='en'?'Obj 1-2 done. Use "trace" to locate the connection.':'Obiettivi 1-2 completati. Usa "trace".'}</span>`);
+    },900);
+  },
+  trace:()=>{
+    if(!gs.logDone){print(`<span class="d">${lang==='en'?'Run "log" first.':'Prima esegui "log".'}</span>`);return;}
+    if(gs.traceDone){print(`<span class="w">${lang==='en'?'Already traced. Origin:':'Tracciamento già eseguito. Origine:'} ${gs.targetCity}</span>`);return;}
+    print(`<span class="w">${lang==='en'?'Tracing via TYMNET...':'Tracciamento via TYMNET...'}</span>`);
+    sfx('scan');
+    const hops=lang==='en'?[
+      'Hop 1: LBL → ARPANET node 36','Hop 2: ARPANET → Datapac (Canada)','Hop 3: Datapac → TYMNET (Europe)',
+      `Hop 4: TYMNET → <span class="d">${gs.targetCity.toUpperCase()}-NET (West Germany)</span>`,
+      `<span class="s">→ Destination: ${gs.targetCity} — KGB link confirmed</span>`,
+    ]:[
+      'Hop 1: LBL → ARPANET node 36','Hop 2: ARPANET → Datapac (Canada)','Hop 3: Datapac → TYMNET (Europa)',
+      `Hop 4: TYMNET → <span class="d">${gs.targetCity.toUpperCase()}-NET (Germania Ovest)</span>`,
+      `<span class="s">→ Destinazione: ${gs.targetCity} — collegamento KGB confermato</span>`,
+    ];
+    let d=0;hops.forEach(h=>{setTimeout(()=>print(h),d);d+=600;});
+    setTimeout(()=>{gs.traceDone=true;completeObj(2);addIntel(`${lang==='en'?'Origin':'Origine'}: ${gs.targetCity}`);
+      print(`<span class="s">✓ ${lang==='en'?`Obj 3. Create honeypot: mkdir ${gs.honeypotName}`:`Obiettivo 3. Crea honeypot: mkdir ${gs.honeypotName}`}</span>`);
+    },d+200);
+  },
+  ls:()=>{let f='mail/   bin/   src/   docs/   lib/';if(gs.honeypotCreated)f+=`   <span class="s">${gs.honeypotName}/</span> ← HONEYPOT`;print(f);},
+  mkdir:(full)=>{
+    const arg=full.split(' ')[1];
+    if(!arg){print(`<span class="d">${lang==='en'?'Usage: mkdir [folder_name]':'Utilizzo: mkdir [nome_cartella]'}</span>`);return;}
+    if(arg===gs.honeypotName){
+      if(gs.honeypotCreated){print(`<span class="w">${lang==='en'?'Directory already exists.':'Directory già esistente.'}</span>`);return;}
+      gs.honeypotCreated=true;
+      sfx('scan');
+      print(`<span class="g">${lang==='en'?`Creating /${gs.honeypotName}...`:`Creazione /${gs.honeypotName}...`}</span>`);
+      setTimeout(()=>{
+        print(lang==='en'?'Loading fake SDI documents...':'Caricamento documenti fasulli SDI...');
+        print('"strategic_laser_v1.doc", "sdi_budget_1987.xls", "reagan_briefing.txt"');
+        print(`<span class="s">${lang==='en'?`Honeypot active. ${gs.targetUser} will see these files.`:`Honeypot attivo. ${gs.targetUser} vedrà questi file.`}</span>`);
+        completeObj(3);addIntel(`Honeypot "${gs.honeypotName}"`);
+      },700);
+    } else {
+      print(`"${arg}" created. <span class="w">(${lang==='en'?`Hint: correct name is`:'Hint: nome corretto è'} <b>${gs.honeypotName}</b>)</span>`);
+    }
+  },
+  monitor:()=>{
+    if(!gs.honeypotCreated){print(`<span class="w">${lang==='en'?'No active honeypot. Create the trap directory first.':'Nessun honeypot attivo. Crea prima la directory esca.'}</span>`);return;}
+    print(`<span class="w">${lang==='en'?'PTY12 surveillance active...':'Sorveglianza PTY12 attiva...'}</span>`);
+    sfx('scan');
+    setTimeout(()=>{
+      print(`<span class="d">⚠ ${lang==='en'?'INTRUSION':'INTRUSIONE'} — ${gs.targetUser} → /${gs.honeypotName}</span>`);
+      print(lang==='en'?'Reading: strategic_laser_v1.doc ... sdi_budget_1987.xls':'Lettura: strategic_laser_v1.doc ... sdi_budget_1987.xls');
+      setTimeout(()=>{
+        print(`<span class="w">${lang==='en'?'Physical location via Bundespost Telekom...':'Localizzazione fisica via Bundespost Telekom...'}</span>`);
+        setTimeout(()=>{
+          const moles_it={'Amburgo':'Marcus Hess','Hannover':'Karl Lehmann','Berlino':'Peter Voigt'};
+          const moles_en={'Hamburg':'Marcus Hess','Hanover':'Karl Lehmann','Berlin':'Peter Voigt'};
+          const moles=lang==='en'?moles_en:moles_it;
+          const name=moles[gs.targetCity]||'Hans Weber';
+          print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          print(`<span class="s">${lang==='en'?'PHYSICAL TRACE COMPLETED':'TRACCIAMENTO FISICO COMPLETATO'}</span>`);
+          print(`${lang==='en'?'Subject':'Soggetto'}: <span class="h">${name}</span> — ${gs.targetCity}`);
+          print(`${lang==='en'?'Affiliation':'Affiliazione'}: <span class="d">KGB / ${lang==='en'?'Operation CHAOS':'Operazione CHAOS'}</span>`);
+          print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          completeObj(4);addIntel(`${name} — ${gs.targetCity} — KGB`);
+          const score=gs.security+gs.threatsBlocked*3;
+          setTimeout(()=>triggerWin(`
+            <h2 class="s">✓ ${lang==='en'?'LEVEL 1 COMPLETE':'LIVELLO 1 COMPLETATO'}</h2>
+            <p>${lang==='en'?`Agent <b>${name}</b> identified and reported to the FBI.`:`Agente <b>${name}</b> identificato e segnalato all'FBI.`}</p>
+            <p style="color:var(--pd);font-size:.78rem;line-height:1.8;margin-top:.6rem;">${lang==='en'
+              ? `Marcus Hess was convicted in 1990. Cliff Stoll published <i>The Cuckoo's Egg</i> — the first true account of cyber espionage. The $0.75 discrepancy changed the history of computer security forever.`
+              : `Marcus Hess fu condannato nel 1990. Cliff Stoll pubblicò <i>The Cuckoo's Egg</i> — il primo resoconto reale di spionaggio informatico. La discrepanza da $0.75 cambiò per sempre la storia della sicurezza informatica.`
+            }</p>
+            <p style="margin-top:.8rem;">${lang==='en'?'Security':'Sicurezza'}: <span class="s">${gs.security}%</span> | ${lang==='en'?'Threats blocked':'Minacce bloccate'}: <span class="s">${gs.threatsBlocked}</span> | Score: <span class="w">${score}</span></p>
+            <button class="btn" onclick="goTransition(1)">▶ ${lang==='en'?'CONTINUE: LEVEL 2':'CONTINUA: LIVELLO 2'}</button>
+            <button class="btn" onclick="showBriefing(1)">↺ ${lang==='en'?'REPLAY LEVEL 1':'RIGIOCA LIVELLO 1'}</button>
+            <button class="btn" onclick="backToMenu()" style="font-size:.75rem;color:var(--pd);border-color:var(--dark);">${t('goMenu')}</button>
+          `),800);
+        },1800);
+      },1200);
+    },1400);
+  },
+};
+
+// ══════════════════════════════════════════
+//  LEVEL 2
+// ══════════════════════════════════════════
+const nodePool=[
+  {id:'BERLIN-OA-7',hot:false,desc_it:'traffico standard',desc_en:'standard traffic'},
+  {id:'DRESDEN-NODE-3',hot:false,desc_it:'traffico basso',desc_en:'low traffic'},
+  {id:'LEIPZIG-KOM-1',hot:false,desc_it:'ALTA ATTIVITÀ',desc_en:'HIGH ACTIVITY'},
+  {id:'ERFURT-RELAY-2',hot:false,desc_it:'traffico moderato',desc_en:'moderate traffic'},
+  {id:'ROSTOCK-GW-5',hot:false,desc_it:'spike anomalo',desc_en:'anomalous spike'},
+];
+const codePool=[
+  {code:'DELTA-7-OSCAR-WHISKEY-9',key:'OW79'},
+  {code:'FOXTROT-3-KILO-ZULU-4',key:'KZ34'},
+  {code:'ALPHA-6-NOVEMBER-SIERRA-2',key:'NS62'},
+];
+const molePool=[
+  {name:'Karl Bernd',role_it:'Funzionario Doganale',role_en:'Customs Official',office:'BND/Bonn'},
+  {name:'Stefan Haas',role_it:'Analista Controspionaggio',role_en:'Counterintelligence Analyst',office:'BND/Colonia'},
+  {name:'Ingrid Vogel',role_it:'Segretaria Direzione',role_en:'Executive Secretary',office:'BND/Pullach'},
+];
+
+function buildLevel2(){
+  const sel=[...nodePool].sort(()=>Math.random()-.5).slice(0,3);
+  const hi=randInt(0,sel.length-1);
+  sel[hi]={...sel[hi],hot:true};
+  gs.nodes=sel;gs.hotNode=sel[hi].id;
+  const codeObj=rand(codePool);gs.capturedCode=codeObj.code;gs.decryptKey=codeObj.key;
+  const mole=rand(molePool);gs.moleId=mole;
+  const isEn=lang==='en';
+
+  loadObjectives(isEn?[
+    'Scan STASI network — find the active node (scan)',
+    'Intercept the flagged node (intercept [node])',
+    'Decrypt the payload with the shown key (decrypt [key])',
+    'Identify the BND mole (analyze)',
+    'Transmit evidence before deadline (transmit)',
+  ]:[
+    'Scansiona la rete STASI — trova il nodo attivo (scan)',
+    'Intercetta il nodo segnalato (intercept [nodo])',
+    'Decifra il payload con la chiave mostrata (decrypt [chiave])',
+    'Identifica la talpa nella BND (analyze)',
+    'Trasmetti le prove prima della scadenza (transmit)',
+  ]);
+
+  $('cmd-list').innerHTML=(isEn?[
+    '<b>scan</b> — scan STASI nodes',
+    '<b>intercept [node]</b> — intercept flagged node',
+    '<b>decrypt [key]</b> — decrypt payload',
+    '<b>analyze</b> — identify mole',
+    '<b>transmit</b> — send evidence',
+    '<b>status / clear / save</b>',
+    '<hr style="border-color:var(--dark);margin:.3rem 0;">',
+    '<span style="color:var(--red);font-size:.65rem;">THREAT RESPONSE:</span>',
+    '<b>boost</b> / <b>reroute</b> / <b>snapshot</b>',
+  ]:[
+    '<b>scan</b> — scansiona nodi STASI',
+    '<b>intercept [nodo]</b> — intercetta il nodo segnalato',
+    '<b>decrypt [chiave]</b> — decifra il payload',
+    '<b>analyze</b> — identifica la talpa',
+    '<b>transmit</b> — invia le prove',
+    '<b>status / clear / save</b>',
+    '<hr style="border-color:var(--dark);margin:.3rem 0;">',
+    '<span style="color:var(--red);font-size:.65rem;">RISPOSTA MINACCE:</span>',
+    '<b>boost</b> / <b>reroute</b> / <b>snapshot</b>',
+  ]).join('<br>');
+
+  sfx('boot');
+  printSeq(isEn?[
+    `<span class="g">SYSTEM: BND GATEWAY — WEST BERLIN</span>`,
+    `<span class="g">DATE: 11/07/1989 | 23:41 — 2 days before the Wall falls</span>`,
+    `<span class="g">AGENT: ${playerName||'WATCHDOG'}</span>`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `<span class="w">SMERSH-7 is exfiltrating BND archives to Moscow.</span>`,
+    `<span class="w">You have <b>8 minutes</b> before the data crosses the border.</span>`,
+    ``,
+    `<b>Step 1:</b> Type <b>scan</b> — the network will reveal the active node.`,
+    `<b>Step 2:</b> Type <b>intercept [node]</b> on the flagged node.`,
+    `<b>Step 3:</b> The decryption key will appear — use <b>decrypt [key]</b>.`,
+    `<b>Step 4:</b> Type <b>analyze</b>, then <b>transmit</b>.`,
+  ]:[
+    `<span class="g">SISTEMA: BND GATEWAY — BERLINO OVEST</span>`,
+    `<span class="g">DATA: 07.11.1989 | 23:41 — 2 giorni prima del Muro</span>`,
+    `<span class="g">AGENTE: ${playerName||'WATCHDOG'}</span>`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `<span class="w">SMERSH-7 sta esfiltando archivi BND verso Mosca.</span>`,
+    `<span class="w">Hai <b>8 minuti</b> prima che i dati attraversino il confine.</span>`,
+    ``,
+    `<b>Passo 1:</b> Digita <b>scan</b> — la rete rivelerà il nodo attivo.`,
+    `<b>Passo 2:</b> Digita <b>intercept [nodo]</b> sul nodo segnalato.`,
+    `<b>Passo 3:</b> La chiave di decifratura apparirà — usa <b>decrypt [chiave]</b>.`,
+    `<b>Passo 4:</b> Digita <b>analyze</b>, poi <b>transmit</b>.`,
+  ],0);
+  setTimeout(()=>{startTimer(480);startThreats();startAmbi();},3000);
+}
+
+const l2cmds={
+  help:()=>print(lang==='en'?'Commands: scan, intercept [node], probe [node], decrypt [key], analyze, transmit, status, clear, save | Threats: boost, reroute, snapshot':'Comandi: scan, intercept, probe, decrypt, analyze, transmit, status, clear, save | Minacce: boost, reroute, snapshot'),
+  status:()=>print(`${lang==='en'?'Security':'Sicurezza'}: ${gs.security}% | Timer: ${gs.timeLeft}s | ${lang==='en'?'Intercepted':'Intercettato'}: ${gs.interceptedNode||'—'}`),
+  clear:()=>{$('out').innerHTML='';},
+  save:()=>quickSave(),
+  scan:()=>{
+    if(gs.objectives[0]==='done'){print(`<span class="w">${lang==='en'?'Already scanned.':'Scansione già eseguita.'} ${gs.nodes.map(n=>n.id).join(', ')}</span>`);return;}
+    print(`<span class="w">${lang==='en'?'Scanning X.25 STASI network...':'Scansione X.25 rete STASI...'}</span>`);sfx('scan');
+    let d=400;
+    gs.nodes.forEach(n=>{
+      setTimeout(()=>{
+        if(n.hot){
+          print(`${lang==='en'?'Node':'Nodo'}: <span class="d">*** ${n.id} ***</span> — <span class="d">${lang==='en'?'ANOMALOUS TRAFFIC — ⚠ TARGET':'TRAFFICO ANOMALO — ⚠ OBIETTIVO'}</span>`);
+          setTimeout(()=>print(`  <span class="w">→ ${lang==='en'?`Use: intercept ${n.id}`:`Usa: intercept ${n.id}`}</span>`),200);
+        } else {
+          const desc=lang==='en'?n.desc_en:n.desc_it;
+          print(`${lang==='en'?'Node':'Nodo'}: <span class="g">${n.id}</span> — ${desc}`);
+        }
+      },d);d+=500;
+    });
+    setTimeout(()=>{completeObj(0);addIntel(`${lang==='en'?'Target node':'Nodo target'}: ${gs.hotNode}`);
+      print(`<span class="s">✓ ${lang==='en'?`Scan complete. Intercept the flagged node: intercept ${gs.hotNode}`:`Scansione completata. Intercetta il nodo segnalato: intercept ${gs.hotNode}`}</span>`);
+    },d+200);
+  },
+  probe:(full)=>{
+    const arg=full.split(' ').slice(1).join(' ').toUpperCase();
+    if(gs.objectives[0]!=='done'){print(`<span class="d">${lang==='en'?'Run "scan" first.':'Prima esegui "scan".'}</span>`);return;}
+    const node=gs.nodes.find(n=>n.id===arg);
+    if(!node){print(`<span class="g">${lang==='en'?`Node "${arg}" not found. See scan results.`:`Nodo "${arg}" non trovato. Vedi i risultati di scan.`}</span>`);return;}
+    print(`<span class="g">${lang==='en'?`[Optional — scan already identified the target: ${gs.hotNode}]`:`[Opzionale — scan ha già identificato il target: ${gs.hotNode}]`}</span>`);
+    setTimeout(()=>{
+      if(node.hot){
+        print(`${lang==='en'?'Packets/s':'Pacchetti/s'}: <span class="d">847</span> | ${lang==='en'?'Encryption: ACTIVE — KGB channel':'Cifratura: ATTIVA — canale KGB'}`);
+      } else {
+        print(`${lang==='en'?'Packets/s':'Pacchetti/s'}: <span class="g">${randInt(12,80)}</span> | ${lang==='en'?'Normal traffic.':'Traffico nella norma.'}`);
+      }
+    },500);
+  },
+  intercept:(full)=>{
+    const arg=full.split(' ').slice(1).join(' ').toUpperCase();
+    if(gs.objectives[0]!=='done'){print(`<span class="d">${lang==='en'?'Run "scan" first.':'Prima esegui "scan".'}</span>`);return;}
+    if(!arg){print(`<span class="d">${lang==='en'?'Usage: intercept [node]  →  Example: intercept '+gs.hotNode:'Utilizzo: intercept [nodo]  →  Esempio: intercept '+gs.hotNode}</span>`);return;}
+    if(gs.interceptedNode){print(`<span class="w">${lang==='en'?'Already intercepting:':'Già intercettando:'} ${gs.interceptedNode}</span>`);return;}
+    const node=gs.nodes.find(n=>n.id===arg);
+    if(!node){print(`<span class="d">${lang==='en'?`Node "${arg}" not found. Check scan results.`:`Nodo "${arg}" non trovato. Controlla i risultati di scan.`}</span>`);return;}
+    if(!node.hot){
+      loseSecurity(10);
+      print(`<span class="d">⚠ ${lang==='en'?`Node ${arg}: ordinary traffic. No payload. (-10% security)`:`Nodo ${arg}: traffico ordinario. Nessun payload. (-10%)`}</span>`);
+      print(`<span class="w">${lang==='en'?`Target node is: ${gs.hotNode}`:`Il nodo target è: ${gs.hotNode}`}</span>`);
+      return;
+    }
+    sfx('scan');
+    print(`<span class="w">${lang==='en'?`Hooking node ${arg}...`:`Aggancio al nodo ${arg}...`}</span>`);
+    setTimeout(()=>{
+      gs.interceptedNode=arg;completeObj(1);
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print(`${lang==='en'?'INTERCEPTED TRANSMISSION':'TRASMISSIONE INTERCETTATA'} — ${arg}`);
+      print(`${lang==='en'?'Sender':'Mittente'}: <span class="d">SMERSH-7</span> | ${lang==='en'?'Destination':'Destinatario'}: MOSCOW-CENTRAL`);
+      print(`${lang==='en'?'Encrypted payload':'Payload cifrato'}: <span class="d">[ ${gs.capturedCode} ]</span>`);
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print(`<span class="s">🔑 ${lang==='en'?'DECRYPTION KEY':'CHIAVE DI DECIFRATURA'}: <b>${gs.decryptKey}</b></span>`);
+      print(`<span class="w">→ ${lang==='en'?`Type: decrypt ${gs.decryptKey}`:`Digita: decrypt ${gs.decryptKey}`}</span>`);
+      addIntel(`${lang==='en'?'Key':'Chiave'}: <b>${gs.decryptKey}</b>`);
+      print(`<span class="s">✓ ${lang==='en'?'Obj 2 complete.':'Obiettivo 2 completato.'}</span>`);
+    },1100);
+  },
+  decrypt:(full)=>{
+    const arg=full.split(' ')[1]?.toUpperCase();
+    if(!gs.capturedCode){print(`<span class="d">${lang==='en'?'No payload to decrypt. Intercept the hot node first.':'Nessun payload da decifrare. Prima intercetta il nodo caldo.'}</span>`);return;}
+    if(gs.decrypted){print(`<span class="w">${lang==='en'?'Already decrypted. Use "analyze".':'Già decifrato. Usa "analyze".'}</span>`);return;}
+    if(!arg){print(`<span class="d">${lang==='en'?'Usage: decrypt [key]':'Utilizzo: decrypt [chiave]'}</span>`);return;}
+    if(arg===gs.decryptKey){
+      sfx('decrypt');
+      print(`<span class="w">${lang==='en'?'Applying key...':'Applicazione chiave...'}</span>`);
+      const m=gs.moleId;
+      const role=lang==='en'?m.role_en:m.role_it;
+      printSeq([
+        `${lang==='en'?'Rotor check':'Verifica rotori'}... OK`,
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        `${lang==='en'?'DECRYPTED MESSAGE:':'MESSAGGIO DECIFRATO:'}`,
+        `"${lang==='en'?'EXFILTRATE LIST-K BEFORE MIDNIGHT':'ESFILTRA LISTA-K PRIMA MEZZANOTTE'}`,
+        ` AGENT: ${m.name.toUpperCase()} (${m.office})`,
+        ` ${lang==='en'?'COVER':'COPERTURA'}: ${role.toUpperCase()}"`,
+        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+        `<span class="s">✓ ${lang==='en'?'Obj 3. Use "analyze" to gather evidence.':'Obiettivo 3. Usa "analyze".'}</span>`,
+      ],500,0);
+      setTimeout(()=>{gs.decrypted=true;completeObj(2);addIntel(`${lang==='en'?'Mole':'Talpa'}: ${m.name}`);},4500);
+    } else {
+      loseSecurity(8);
+      print(`<span class="d">${lang==='en'?'Wrong key. -8% security.':'Chiave errata. -8% sicurezza.'}</span>`);
+      print(`<span class="w">${lang==='en'?`The key was shown after intercept. Check the INTEL panel on the right.`:`La chiave è stata mostrata dopo l'intercettazione. Controlla il pannello INTEL a destra.`}</span>`);
+      if(gs.interceptedNode) print(`<span class="s">🔑 ${lang==='en'?'Key':'Chiave'}: <b>${gs.decryptKey}</b></span>`);
+    }
+  },
+  analyze:()=>{
+    if(!gs.decrypted){print(`<span class="d">${lang==='en'?'Decrypt the message first.':'Prima decifra il messaggio.'}</span>`);return;}
+    if(gs.moleConfirmed){print(`<span class="w">${lang==='en'?'Mole already identified. Use "transmit".':'Talpa già identificata. Usa "transmit".'}</span>`);return;}
+    const m=gs.moleId;const role=lang==='en'?m.role_en:m.role_it;sfx('scan');
+    print(`<span class="w">${lang==='en'?'Analyzing BND database...':'Analisi database BND...'}</span>`);
+    printSeq([
+      `${lang==='en'?'Cross-referencing: access logs, movements, finances...':'Incrocio: accessi, movimenti, finanze...'}`,
+      `${lang==='en'?'Match':'Corrispondenza'}: <span class="d">${m.name}</span>`,
+      `  ${lang==='en'?'Role':'Ruolo'}: ${role} | ${lang==='en'?'Office':'Ufficio'}: ${m.office}`,
+      `  ${lang==='en'?'Anomalous night accesses':'Accessi notturni anomali'}: ${randInt(10,18)}`,
+      `  ${lang==='en'?'Undeclared trip: East Berlin':'Viaggio non dichiarato: Berlino Est'} ${randInt(1,7)}.11.1989`,
+      `  ${lang==='en'?'Anonymous Zurich account':'C/C anonimo Zurigo'}: +${lang==='en'?'DM':'DM'} ${randInt(20,45)}.000`,
+      `<span class="s">${lang==='en'?'MOLE CONFIRMED':'TALPA CONFERMATA'}: ${m.name}</span>`,
+    ],480,300);
+    setTimeout(()=>{gs.moleConfirmed=true;completeObj(3);addIntel(`${lang==='en'?'Confirmed mole':'Talpa confermata'}: ${m.name}`);
+      print(`<span class="s">✓ ${lang==='en'?'Obj 4. Transmit evidence before time runs out.':'Obiettivo 4. Trasmetti le prove prima dello scadere del tempo.'}</span>`);
+    },4500);
+  },
+  transmit:()=>{
+    if(!gs.moleConfirmed){print(`<span class="d">${lang==='en'?'Identify the mole with "analyze" first.':'Identifica prima la talpa con "analyze".'}</span>`);return;}
+    sfx('transmit');
+    print(`<span class="w">${lang==='en'?'PGP encryption of evidence package...':'Cifratura PGP pacchetto prove...'}</span>`);
+    printSeq([
+      lang==='en'?'Attachments: interception log, decrypted message, bank data':'Allegati: log intercettazione, messaggio decifrato, dati bancari',
+      lang==='en'?'Recipient: BND-Counterintelligence / BKA Wiesbaden':'Destinatario: BND-Konterspionage / BKA Wiesbaden',
+      lang==='en'?'Transmitting...':'Trasmissione in corso...',
+      '█████████████████████ 100%',
+      `<span class="s">${lang==='en'?'TRANSMISSION COMPLETE':'TRASMISSIONE COMPLETATA'}</span>`,
+      `Ref: BND-KS-891109-${randInt(1000,9999)}`,
+    ],450,0);
+    setTimeout(()=>{
+      completeObj(4);
+      clearInterval(timerInterval); timerInterval = null;
+      const m=gs.moleId;const score=gs.security+gs.threatsBlocked*4+Math.floor((gs.timeLeft||0)/6);
+      addIntel(lang==='en'?'Evidence transmitted. Arrest warrant issued.':'Prove trasmesse. Mandato di arresto emesso.');
+      setTimeout(()=>triggerWin(`
+        <h2 class="s">✓ ${lang==='en'?'OPERATION MAUER COMPLETE':'OPERAZIONE MAUER COMPLETATA'}</h2>
+        <p>${lang==='en'?`Mole <b>${m.name}</b> arrested.`:`La talpa <b>${m.name}</b> è stata arrestata.`}</p>
+        <p style="color:var(--pd);font-size:.78rem;line-height:1.8;margin-top:.6rem;">${lang==='en'
+          ? `On November 9, 1989, the Berlin Wall fell. The STASI network collapsed within hours. Over 90,000 officers, hundreds of informants — dismantled in a single night. History does not always wait for the right moment. Sometimes you have to create it.`
+          : `Il 9 novembre 1989, il Muro di Berlino cadde. La rete STASI si sgretolò nel giro di poche ore. Oltre 90.000 ufficiali, centinaia di informatori — smantellati in una sola notte. La storia non aspetta sempre il momento giusto. A volte bisogna crearlo.`
+        }</p>
+        <p style="margin-top:.8rem;">${lang==='en'?'Security':'Sicurezza'}: <span class="s">${gs.security}%</span> | ${lang==='en'?'Score':'Punteggio'}: <span class="w">${score}</span></p>
+        <button class="btn" onclick="goTransition(2)">▶ ${lang==='en'?'CONTINUE: LEVEL 3 — GHOST PROTOCOL':'CONTINUA: LIVELLO 3 — GHOST PROTOCOL'}</button>
+        <button class="btn" onclick="showBriefing(2)">↺ ${lang==='en'?'REPLAY LEVEL 2':'RIGIOCA LIVELLO 2'}</button>
+        <button class="btn" onclick="backToMenu()" style="font-size:.75rem;color:var(--pd);border-color:var(--dark);">${t('goMenu')}</button>
+      `),800);
+    },3200);
+  },
+};
+
+// ══════════════════════════════════════════
+//  LEVEL 3
+// ══════════════════════════════════════════
+const l3Archives=[
+  {path:'/kgb/archivi/venona/lista_k.enc',codename:'VENONA-K'},
+  {path:'/kgb/segreti/op_ghost/registry.enc',codename:'GHOST-REG'},
+  {path:'/kgb/operativi/omega/index.enc',codename:'OMEGA-IX'},
+];
+
+function buildLevel3(){
+  document.body.classList.add('lv3');
+  const archObj=rand(l3Archives);
+  gs.archivePath=archObj.path;gs.archiveCodename=archObj.codename;
+  gs.exfilRoute=rand(['HELSINKI-RELAY','STOCKHOLM-PROXY','VIENNA-NODE']);
+  const isEn=lang==='en';
+
+  loadObjectives(isEn?[
+    'Access system with login guest',
+    'Gain level 2 privileges (escalate)',
+    'Scan classified directories (scan)',
+    'Download VENONA archive (download)',
+    'Choose the fate of the archive (choice)',
+  ]:[
+    'Accedi al sistema con login guest',
+    'Ottieni privilegi livello 2 (escalate)',
+    'Scansiona le directory riservate (scan)',
+    'Scarica l\'archivio VENONA (download)',
+    'Scegli il destino dell\'archivio (choice)',
+  ]);
+
+  $('cmd-list').innerHTML=(isEn?[
+    '<b>login [user]</b> — access system','<b>escalate</b> — escalate privileges',
+    '<b>scan</b> — scan directories','<b>ls [path]</b> — list contents',
+    '<b>download [path]</b> — download archive','<b>verify</b> — verify integrity',
+    '<b>choice [A/B/C]</b> — final decision','<b>status / clear / save</b>',
+    '<hr style="border-color:var(--dark);margin:.3rem 0;">',
+    '<span style="color:var(--red);font-size:.65rem;">THREAT RESPONSE:</span>',
+    '<b>divert</b> / <b>spoof</b> / <b>silence</b>',
+  ]:[
+    '<b>login [utente]</b> — accedi al sistema','<b>escalate</b> — eleva privilegi',
+    '<b>scan</b> — scansiona directory','<b>ls [path]</b> — elenca contenuto',
+    '<b>download [path]</b> — scarica archivio','<b>verify</b> — verifica integrità',
+    '<b>choice [A/B/C]</b> — decisione finale','<b>status / clear / save</b>',
+    '<hr style="border-color:var(--dark);margin:.3rem 0;">',
+    '<span style="color:var(--red);font-size:.65rem;">RISPOSTA MINACCE:</span>',
+    '<b>divert</b> / <b>spoof</b> / <b>silence</b>',
+  ]).join('<br>');
+
+  sfx('boot');
+  printSeq(isEn?[
+    `<span class="w">════════════════════════════════════════════</span>`,
+    `<span class="w">   SYSTEM: KGB INTERNAL — MOSCOW CENTER     </span>`,
+    `<span class="w">   DATE: 08.19.1991 | 07:32 — STATE OF EMERGENCY</span>`,
+    `<span class="w">════════════════════════════════════════════</span>`,
+    `<span class="d">⚠ COUP IN PROGRESS. GORBACHEV ARRESTED.</span>`,
+    `<span class="d">⚠ Archive destruction order: 08:00</span>`,
+    `${lang==='en'?'Agent':'Agente'}: <span class="s">${playerName||'GHOST_OPERATOR'}</span> | ${lang==='en'?'Connection established.':'Connessione stabilita.'}`,
+    `${lang==='en'?'Use <b>login guest</b> to access.':'Usa <b>login guest</b> per accedere.'}`,
+  ]:[
+    `<span class="w">════════════════════════════════════════════</span>`,
+    `<span class="w">   SISTEMA: КГБ INTERNO — CENTRO MOSCA      </span>`,
+    `<span class="w">   DATA: 19.08.1991 | 07:32 — STATO D'EMERGENZA</span>`,
+    `<span class="w">════════════════════════════════════════════</span>`,
+    `<span class="d">⚠ COLPO DI STATO IN CORSO. GORBACIOV ARRESTATO.</span>`,
+    `<span class="d">⚠ Ordine di distruzione archivi: ORE 08:00</span>`,
+    `Agente: <span class="s">${playerName||'GHOST_OPERATOR'}</span> | Connessione anonima stabilita.`,
+    `Usa <b>login guest</b> per accedere.`,
+  ],0);
+  setTimeout(()=>{startTimer(600);startThreats();startAmbi();},4000);
+}
+
+const l3cmds={
+  help:()=>print(lang==='en'?'Commands: login, escalate, scan, ls, download, verify, choice, status, clear, save | Threats: divert, spoof, silence':'Comandi: login, escalate, scan, ls, download, verify, choice, status, clear, save | Minacce: divert, spoof, silence'),
+  status:()=>print(`${lang==='en'?'Security':'Sicurezza'}: ${gs.security}% | ${lang==='en'?'Access level':'Livello'}: ${gs.accessLevel} | ${lang==='en'?'Archive':'Archivio'}: ${gs.archiveDownloaded?'<span class="s">'+( lang==='en'?'DOWNLOADED':'SCARICATO')+'</span>':'—'}`),
+  clear:()=>{$('out').innerHTML='';},
+  save:()=>quickSave(),
+  login:(full)=>{
+    const user=full.split(' ')[1];
+    if(gs.accessLevel>=1){print(`<span class="w">${lang==='en'?'Already authenticated. Level:':'Già autenticato. Livello:'} ${gs.accessLevel}</span>`);return;}
+    if(!user){print(`<span class="d">${lang==='en'?'Usage: login [user] — try "guest"':'Utilizzo: login [utente] — prova con "guest"'}</span>`);return;}
+    if(user==='guest'){
+      sfx('scan');print(`<span class="w">${lang==='en'?'Authenticating...':'Autenticazione in corso...'}</span>`);
+      setTimeout(()=>{
+        gs.accessLevel=1;completeObj(0);
+        print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        print(`${lang==='en'?'Welcome,':'Benvenuto,'} <span class="w">GUEST_OPERATOR</span>`);
+        print(`${lang==='en'?'Access level: 1/3 — Available: /public /news':'Livello accesso: 1/3 — Disponibili: /public /news'}`);
+        print(`<span class="d">${lang==='en'?'Classified directories: ACCESS DENIED — escalation needed':'Directory riservate: ACCESSO NEGATO — serve escalation'}</span>`);
+        print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        addIntel(`GUEST ${lang==='en'?'access granted':'access ottenuto'}`);
+        print(`<span class="s">✓ ${lang==='en'?'Obj 1. Use "escalate" to elevate privileges.':'Obiettivo 1. Usa "escalate".'}</span>`);
+      },800);
+    } else {loseSecurity(8);print(`<span class="d">${lang==='en'?`User "${user}" invalid. -8%. Try "guest".`:`Utente "${user}" non valido. -8%. Prova con "guest".`}</span>`);}
+  },
+  escalate:()=>{
+    if(gs.accessLevel===0){print(`<span class="d">${lang==='en'?'Run "login guest" first.':'Prima esegui "login guest".'}</span>`);return;}
+    if(gs.accessLevel>=2){print(`<span class="w">${lang==='en'?'Privileges already elevated.':'Privilegi già elevati.'}</span>`);return;}
+    sfx('decrypt');
+    print(`<span class="w">${lang==='en'?'Exploiting buffer overflow in svrb_auth v2.1...':'Exploiting buffer overflow in svrb_auth v2.1...'}</span>`);
+    const steps=[
+      'Payload: 0x41414141...','EIP: 0xBFFFF320',
+      `${lang==='en'?'Shellcode executing':'Shellcode in esecuzione'}: /bin/sh -p`,
+      `<span class="s">${lang==='en'?'ESCALATION SUCCESS — Level 2 obtained':'ESCALATION RIUSCITA — Livello 2 ottenuto'}</span>`,
+      `${lang==='en'?'Unlocked':'Sbloccate'}: /kgb /operativi /archivi`,
+    ];
+    steps.forEach((s,i)=>setTimeout(()=>print(s),i*600));
+    setTimeout(()=>{gs.accessLevel=2;completeObj(1);addIntel(`${lang==='en'?'Level 2 access':'Livello 2'}`);
+      print(`<span class="s">✓ ${lang==='en'?'Obj 2. Scan directories with "scan".':'Obiettivo 2. Scansiona con "scan".'}</span>`);
+    },steps.length*600+200);
+  },
+  scan:()=>{
+    if(gs.accessLevel<2){print(`<span class="d">${lang==='en'?'Insufficient access. Run "escalate" first.':'Accesso insufficiente. Esegui "escalate" prima.'}</span>`);return;}
+    if(gs.dirScanned){print(`<span class="w">${lang==='en'?'Already scanned.':'Scan già eseguito.'} ${gs.archivePath}</span>`);return;}
+    sfx('scan');
+    print(`<span class="w">${lang==='en'?'Scanning KGB directory tree...':'Scansione albero directory KGB...'}</span>`);
+    const fakeDirs=[
+      lang==='en'?'/kgb/operativi/ — 847 files | CLASSIFIED':'/kgb/operativi/ — 847 file | RISERVATO',
+      lang==='en'?'/kgb/archivi/   — 1243 files | TOP SECRET':'/kgb/archivi/   — 1243 file | TOP SECRET',
+      `/kgb/archivi/venona/ — <span class="d">${lang==='en'?'CRITICAL ACCESS — VENONA ARCHIVE':'ACCESSO CRITICO — ARCHIVIO VENONA'}</span>`,
+      `<span class="d">⚠ ${lang==='en'?'File detected':'File rilevato'}: <b>${gs.archivePath}</b></span>`,
+      `<span class="w">${lang==='en'?'Codename':'Codename'}: ${gs.archiveCodename} | 4.7MB | AES-128</span>`,
+    ];
+    fakeDirs.forEach((d,i)=>setTimeout(()=>print(d),i*550+400));
+    setTimeout(()=>{
+      gs.dirScanned=true;completeObj(2);addIntel(`${lang==='en'?'Archive found':'Archivio trovato'}: ${gs.archivePath}`);
+      print(`<span class="s">✓ ${lang==='en'?`Obj 3. Use: download ${gs.archivePath}`:`Obiettivo 3. Usa: download ${gs.archivePath}`}</span>`);
+    },fakeDirs.length*550+600);
+  },
+  ls:(full)=>{
+    const path=full.split(' ').slice(1).join(' ')||'/';
+    if(gs.accessLevel<2&&(path.includes('kgb')||path.includes('archivi'))){print(`<span class="d">${lang==='en'?'Access denied. Run "escalate".':'Accesso negato. Esegui "escalate".'}</span>`);return;}
+    const entries={
+      '/':'public/   news/   tmp/',
+      '/public':lang==='en'?'bulletins.txt   news.doc':'comunicati.txt   bollettino.doc',
+      '/kgb':'operativi/   archivi/   comms/   logs/',
+      '/kgb/archivi':'venona/   omega/   ghost/   [CIFRATI]',
+      '/kgb/archivi/venona':`lista_k.enc   backup_1989.enc   <span class="d">${gs.archivePath.split('/').pop()}</span>`,
+    };
+    print(entries[path]||`<span class="g">${lang==='en'?'Path not found':'Path non trovato'}: ${path}</span>`);
+  },
+  download:(full)=>{
+    const path=full.split(' ').slice(1).join(' ');
+    if(gs.accessLevel<2){print(`<span class="d">${lang==='en'?'Insufficient access.':'Accesso insufficiente.'}</span>`);return;}
+    if(!gs.dirScanned){print(`<span class="d">${lang==='en'?'Scan directories first.':'Prima scansiona le directory con "scan".'}</span>`);return;}
+    if(gs.archiveDownloaded){print(`<span class="w">${lang==='en'?'Archive already downloaded. Use "verify".':'Archivio già scaricato. Usa "verify".'}</span>`);return;}
+    if(!path){print(`<span class="d">${lang==='en'?`Usage: download [path] — use the path found with scan`:`Utilizzo: download [path]`}</span>`);return;}
+    if(path!==gs.archivePath){print(`<span class="d">${lang==='en'?`File not found: ${path}`:`File non trovato: ${path}`}</span>`);print(`<span class="w">${lang==='en'?`Hint: correct path is "${gs.archivePath}"`:`Hint: il path corretto è "${gs.archivePath}"`}</span>`);return;}
+    sfx('download');
+    print(`<span class="w">${lang==='en'?`Downloading ${gs.archiveCodename}...`:`Download ${gs.archiveCodename}...`}</span>`);
+    const bar=['█░░░░░░░░░░','███░░░░░░░░','█████░░░░░░','████████░░░','████████████'];
+    bar.forEach((b,i)=>setTimeout(()=>print(b+' '+Math.round((i+1)/bar.length*100)+'%'),i*400+300));
+    setTimeout(()=>{
+      gs.archiveDownloaded=true;completeObj(3);addIntel(`${gs.archiveCodename} — 4.7MB`);
+      print(`<span class="s">✓ ${lang==='en'?`VENONA archive in local memory.`:`Archivio VENONA in memoria locale.`}</span>`);
+      print(`<span class="w">${lang==='en'?'Contains: 247 names of Soviet agents in the West, 1968-1991.':'Contiene: 247 nomi di agenti sovietici in Occidente, 1968-1991.'}</span>`);
+      print(`${lang==='en'?'Verify with <b>verify</b>, then choose the fate.':'Verifica con <b>verify</b>, poi scegli il destino.'}`);
+    },bar.length*400+600);
+  },
+  verify:()=>{
+    if(!gs.archiveDownloaded){print(`<span class="d">${lang==='en'?'No archive in memory. Run "download" first.':'Nessun archivio in memoria. Prima esegui "download".'}</span>`);return;}
+    sfx('scan');
+    print(`<span class="w">${lang==='en'?'Verifying SHA-256 checksum...':'Verifica checksum SHA-256...'}</span>`);
+    setTimeout(()=>{
+      const hash=Array.from({length:8},()=>Math.floor(Math.random()*65536).toString(16).padStart(4,'0')).join('-');
+      print(`Hash: <span class="s">${hash}</span>`);
+      print(`${lang==='en'?'Integrity':'Integrità'}: <span class="s">${lang==='en'?'VERIFIED':'VERIFICATA'}</span> | ${lang==='en'?'Records':'Record'}: 247 | ${lang==='en'?'Corrupted':'Corrotti'}: 0`);
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      print(`<span class="w">⚠ ${lang==='en'?'FINAL CHOICE — What do you do with the VENONA archive?':'SCELTA FINALE — Cosa fai con l\'archivio VENONA?'}</span>`);
+      print(`<span class="s">[A]</span> ${lang==='en'?'Transmit to CIA — expose all Soviet spies in the West':'Trasmetti alla CIA — esponi tutte le spie sovietiche in Occidente'}`);
+      print(`<span class="w">[B]</span> ${lang==='en'?'Destroy the archive — no one will ever know the names':'Distruggi l\'archivio — nessuno saprà mai i nomi'}`);
+      print(`<span class="d">[C]</span> ${lang==='en'?'Sell on the black market — maximum personal profit':'Vendi al mercato nero — massimo profitto personale'}`);
+      print(`${lang==='en'?'Type:':'Digita:'} <b>choice A</b>, <b>choice B</b> ${lang==='en'?'or':'o'} <b>choice C</b>`);
+    },900);
+  },
+  choice:(full)=>{
+    if(!gs.archiveDownloaded){print(`<span class="d">${lang==='en'?'Download and verify the archive first.':'Prima scarica e verifica l\'archivio.'}</span>`);return;}
+    if(gs.choiceMade){print(`<span class="w">${lang==='en'?'Choice already made. History is written.':'Scelta già effettuata.'}</span>`);return;}
+    const opt=full.split(' ')[1]?.toUpperCase();
+    if(!['A','B','C'].includes(opt)){print(`<span class="d">${lang==='en'?'Invalid choice. Use: choice A, choice B or choice C':'Scelta non valida. Usa: choice A, choice B o choice C'}</span>`);return;}
+    gs.choiceMade=opt; completeObj(4); cleanupGame(); inputDisabled=true;
+    const score=gs.security+gs.threatsBlocked*5+Math.floor((gs.timeLeft||0)/10);
+    const endings={
+      A:{
+        title_it:'✓ FINE: AGENTE DELLA STORIA',title_en:'✓ END: AGENT OF HISTORY',color:'s',
+        lines_it:['I 247 nomi raggiungono la CIA entro l\'alba.','Nel giro di 18 mesi, tutte le reti KGB in Occidente vengono smantellate.','Il crollo dell\'URSS — ufficiale il 25 dicembre 1991 — trova il KGB già cieco.','"Le guerre più importanti si vincono prima che inizino." — CIA, 1992'],
+        lines_en:['The 247 names reach the CIA by dawn.','Within 18 months, all KGB networks in the West are dismantled.','The USSR collapse — official December 25, 1991 — finds the KGB already blind.','"The most important wars are won before they start." — CIA, 1992'],
+        tag:'🌐 ENDING: THE GREAT FREEZE',
+      },
+      B:{
+        title_it:'◈ FINE: IL GUARDIANO DEL SILENZIO',title_en:'◈ END: THE SILENCE KEEPER',color:'w',
+        lines_it:['L\'archivio brucia nei server del KGB.','247 agenti non saranno mai esposti — né puniti.','Alcune spie continuano ad operare per anni.','"Il segreto più potente è quello che muore con te."'],
+        lines_en:['The archive burns in KGB servers.','247 agents will never be exposed — nor punished.','Some spies continue operating for years.','"The most powerful secret is the one that dies with you."'],
+        tag:'🌫️ ENDING: NECESSARY SILENCE',
+      },
+      C:{
+        title_it:'✗ FINE: IL TRADITORE',title_en:'✗ END: THE TRAITOR',color:'d',
+        lines_it:['L\'archivio viene venduto a tre acquirenti diversi.','Il caos informativo compromette operazioni su entrambi i lati.','Sei localizzato e arrestato a Vienna nel 1993.','"La cupidigia ha ucciso più agenti della pistola." — KGB Academy.'],
+        lines_en:['The archive is sold to three different buyers.','The information chaos compromises operations on both sides.','You are located and arrested in Vienna in 1993.','"Greed has killed more agents than bullets." — KGB Academy.'],
+        tag:'💰 ENDING: BETRAYAL',
+      },
+    };
+    const e=endings[opt];
+    const isEn=lang==='en';
+    const title=isEn?e.title_en:e.title_it;
+    const lines=isEn?e.lines_en:e.lines_it;
+    setTimeout(()=>{
+      print(`<span class="${e.color}">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>`);
+      lines.forEach((l,i)=>setTimeout(()=>print(`<span class="${e.color}">${l}</span>`),i*700+400));
+      setTimeout(()=>{
+        triggerWin(`
+          <h2 class="${e.color}">${title}</h2>
+          ${lines.map(l=>`<p>${l}</p>`).join('')}
+          <p style="margin-top:1rem;color:var(--amber);">${e.tag}</p>
+          <p style="color:var(--pd);font-size:.78rem;line-height:1.9;margin-top:.8rem;border-top:1px solid var(--dark);padding-top:.8rem;">${lang==='en'
+            ? `The USSR dissolved on December 25, 1991. The Cold War ended — but the threat never did.<br><br><span style="color:var(--pg);">Hackers, no matter how times change and technologies evolve, remain a concrete threat to all of us.<br><b>NO ONE EXCLUDED.</b></span>`
+            : `L'URSS si dissolse il 25 dicembre 1991. La Guerra Fredda finì — ma la minaccia no.<br><br><span style="color:var(--pg);">Gli hacker, nonostante i tempi cambino e le tecnologie si evolvano, restano sempre una minaccia concreta per tutti noi.<br><b>NESSUNO ESCLUSO.</b></span>`
+          }</p>
+          <p style="color:var(--amber);margin-top:.8rem;">🏆 ${lang==='en'?'FINAL SCORE':'PUNTEGGIO FINALE'}: <b>${score}</b> | ${lang==='en'?'Threats blocked':'Minacce bloccate'}: ${gs.threatsBlocked}</p>
+          <button class="btn" onclick="showBriefing(3)">↺ ${lang==='en'?'REPLAY LEVEL 3 — DIFFERENT CHOICE':'RIGIOCA LIVELLO 3 — ALTRA SCELTA'}</button>
+          <button class="btn" onclick="showBriefing(1)">↺ ${lang==='en'?'NEW FULL GAME':'NUOVA PARTITA COMPLETA'}</button>
+          <button class="btn" onclick="backToMenu()" style="font-size:.75rem;color:var(--pd);border-color:var(--dark);">${t('goMenu')}</button>
+        `);
+      },lines.length*700+600);
+    },400);
+  },
+};
+
+// ══════════════════════════════════════════
+//  CLI HISTORY + AUTOCOMPLETE
+// ══════════════════════════════════════════
+const cmdHistory = [];
+let historyIdx   = -1;
+let historyDraft = ''; // preserves current draft when browsing
+
+const allCmds = {
+  1: ['log','trace','ls','mkdir','monitor','status','clear','save','help','locklog','firewall','chmod'],
+  2: ['scan','probe','intercept','decrypt','analyze','transmit','status','clear','save','help','boost','reroute','snapshot'],
+  3: ['login','escalate','scan','ls','download','verify','choice','status','clear','save','help','divert','spoof','silence'],
+};
+
+function getCompletions(partial) {
+  const pool = allCmds[currentLevel] || [];
+  return pool.filter(c => c.startsWith(partial.toLowerCase()));
+}
+
+// ── INPUT ROUTER ──────────────────────────────────────────────────────
+$('inp').addEventListener('keydown', function(e) {
+  // Block all input when disabled (save overlay uses its own document listener)
+  if (inputDisabled) return;
+
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (cmdHistory.length === 0) return;
+    if (historyIdx === -1) historyDraft = this.value;
+    historyIdx = Math.min(historyIdx + 1, cmdHistory.length - 1);
+    this.value = cmdHistory[historyIdx];
+    setTimeout(() => { this.selectionStart = this.selectionEnd = this.value.length; }, 0);
+    return;
+  }
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (historyIdx === -1) return;
+    historyIdx--;
+    this.value = historyIdx === -1 ? historyDraft : cmdHistory[historyIdx];
+    setTimeout(() => { this.selectionStart = this.selectionEnd = this.value.length; }, 0);
+    return;
+  }
+
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const val = this.value.trim();
+    if (!val) return;
+    const parts = val.split(' ');
+    const completions = getCompletions(parts[0]);
+    if (completions.length === 1) {
+      parts[0] = completions[0];
+      this.value = parts.join(' ');
+      sfx('blip');
+    } else if (completions.length > 1) {
+      print(`<span class="g">$ ${val} [TAB]</span>`);
+      print(`<span class="g">${completions.join('  ')}</span>`);
+      sfx('hover');
+    }
+    return;
+  }
+});
+
+$('inp').addEventListener('keypress', e => {
+  if (e.key !== 'Enter') return;
+  if (inputDisabled) return;
+
+  const val = $('inp').value.trim();
+  $('inp').value = '';
+  if (!val) return;
+
+  if (cmdHistory[0] !== val) cmdHistory.unshift(val);
+  if (cmdHistory.length > 50) cmdHistory.pop();
+  historyIdx = -1;
+  historyDraft = '';
+
+  sfx('blip');
+  print(`<span class="g">$ ${val}</span>`);
+  const cmdKey = val.toLowerCase().split(' ')[0];
+  if (resolveThreats(cmdKey)) return;
+  const map = currentLevel === 0 ? l0cmds : currentLevel === 1 ? l1cmds : currentLevel === 2 ? l2cmds : l3cmds;
+  if (map[cmdKey]) {
+    map[cmdKey](val.toLowerCase());
+  } else {
+    print(`<span class="d">${lang==='en' ? `Command not recognized: "${cmdKey}". Type "help".` : `Comando non riconosciuto: "${cmdKey}". Digita "help".`}</span>`);
+  }
+});
+
+// ══════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════
+function startLevel(n){
+  closeModal();
+  stopMenuMusic();
+  currentLevel=n;
+  initState(n);
+
+  // Restore security + stats from save if pending
+  if (_pendingLoadSave && _pendingLoadSave.level === n) {
+    gs.security       = _pendingLoadSave.security       || gs.security;
+    gs.threatsBlocked = _pendingLoadSave.threatsBlocked || 0;
+    _pendingLoadSave  = null;
+  }
+  $('out').innerHTML='';
+  $('intel-list').innerHTML='';
+  $('intel-panel').style.display='none';
+  $('threat-panel').style.display='none';
+  $('hud-timer-wrap').style.display='none';
+  hideAllScreens();
+  $('game').style.display='block';
+  document.body.classList.toggle('lv3',n===3);
+  applyLangToUI();
+  const isEn=lang==='en';
+  const lv=n===0?{user:playerName||'RECLUTA',badge:`LV.0 — ${isEn?'TRAINING':'ADDESTRAMENTO'}`,status:`<span class="s">${isEn?'TUTORIAL':'TUTORIAL'}</span>`}
+    :n===1?{user:playerName||'CLIFF_STOLL',badge:`LV.1 — ${isEn?"CUCKOO'S EGG":"CUCKOO'S EGG"}`,status:`<span class="d">${isEn?'ACTIVE INTRUSION':'INTRUSIONE ATTIVA'}</span>`}
+    :n===2?{user:playerName||'AGENT_WATCHDOG',badge:`LV.2 — ${isEn?'OP. MAUER':'OPERAZIONE MAUER'}`,status:`<span class="d">${isEn?'KGB NETWORK ACTIVE':'RETE KGB ATTIVA'}</span>`}
+    :{user:playerName||'GHOST_OPERATOR',badge:`LV.3 — GHOST PROTOCOL`,status:`<span class="d">${isEn?'COUP IN PROGRESS':'COLPO DI STATO'}</span>`};
+  $('hud-user').textContent=lv.user;
+  $('hud-badge').textContent=lv.badge;
+  $('hud-status').innerHTML=lv.status;
+  setGauge(n===0?100:n===1?72:n===2?55:60);
+  setTimeout(()=>$('inp').focus(),100);
+  if(n===0)buildLevel0();else if(n===1)buildLevel1();else if(n===2)buildLevel2();else buildLevel3();
+}
+
+function goTransition(fromLevel){
+  closeModal();
+  $('game').style.display='none';
+  document.body.classList.remove('lv3');
+  const trans=$('screen-trans');
+  trans.classList.remove('hidden');
+  const isEn=lang==='en';
+  if(fromLevel===1){
+    $('trans-title').textContent=isEn?'LEVEL 1 COMPLETE':'LIVELLO 1 COMPLETATO';
+    $('trans-body').innerHTML=isEn?`
+      Marcus Hess arrested. The "Cuckoo's Egg" case documented.<br><br>
+      <span style="color:var(--amber);">The KGB network is not yet silent.</span><br>
+      Year: <span class="h">1989</span> — A new agent is active: <span class="d">SMERSH-7</span><br><br>
+      West Berlin awaits. You have <b>8 minutes</b>.<br>
+      <span style="color:var(--pd);font-size:.8rem;">Warning: intercepting the wrong node has consequences.</span>
+    `:`
+      Marcus Hess arrestato. Il caso "The Cuckoo's Egg" documentato.<br><br>
+      <span style="color:var(--amber);">La rete KGB non è ancora spenta.</span><br>
+      Anno: <span class="h">1989</span> — Un nuovo agente è operativo: <span class="d">SMERSH-7</span><br><br>
+      Berlino Ovest ti aspetta. Hai <b>8 minuti</b>.<br>
+      <span style="color:var(--pd);font-size:.8rem;">Attenzione: intercettare il nodo sbagliato ha conseguenze.</span>
+    `;
+    $('btn-trans').textContent=isEn?'▶ START LEVEL 2: OPERATION MAUER':'▶ INIZIA LIVELLO 2: OPERAZIONE MAUER';
+    $('btn-trans').onclick=()=>showBriefing(2);
+  } else {
+    $('trans-title').textContent=isEn?'LEVEL 2 COMPLETE':'LIVELLO 2 COMPLETATO';
+    $('trans-body').innerHTML=isEn?`
+      The Wall has fallen. The STASI dismantled.<br><br>
+      <span style="color:var(--amber);">But the Cold War has one final act.</span><br>
+      Year: <span class="h">1991</span> — Moscow. A coup. <span class="d">The KGB is burning its archives.</span><br><br>
+      You have 10 minutes to infiltrate and save the VENONA archive.<br>
+      <span style="color:var(--pd);font-size:.8rem;">The final choice will change the course of history. Irreversible.</span>
+    `:`
+      Il Muro è caduto. La STASI è smantellata.<br><br>
+      <span style="color:var(--amber);">Ma la Guerra Fredda ha un ultimo atto.</span><br>
+      Anno: <span class="h">1991</span> — Mosca. Un colpo di Stato. <span class="d">Il KGB brucia i suoi archivi.</span><br><br>
+      Hai 10 minuti per infiltrarti e salvare l'archivio VENONA.<br>
+      <span style="color:var(--pd);font-size:.8rem;">La scelta finale cambierà il corso della storia. Irreversibile.</span>
+    `;
+    $('btn-trans').textContent=isEn?'▶ START LEVEL 3: GHOST PROTOCOL':'▶ INIZIA LIVELLO 3: GHOST PROTOCOL';
+    $('btn-trans').onclick=()=>showBriefing(3);
+  }
+}
+
+// ══════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════
+window.onload=()=>{
+  lang=localStorage.getItem('kgb_lang')||'it';
+  playerName=localStorage.getItem('kgb_player')||'';
+  menuMusicEnabled = localStorage.getItem('kgb_music') !== 'off';
+  textSpeed = localStorage.getItem('kgb_txtspeed') || 'normal';
+
+  // ── Options button listeners (replaces all inline onclick/oninput) ──
+  $('opt-it').addEventListener('click', () => setLang('it'));
+  $('opt-en').addEventListener('click', () => setLang('en'));
+  $('opt-sfx-on').addEventListener('click',    () => setOptSfx(true));
+  $('opt-sfx-off').addEventListener('click',   () => setOptSfx(false));
+  $('opt-music-on').addEventListener('click',  () => setOptMusic(true));
+  $('opt-music-off').addEventListener('click', () => setOptMusic(false));
+  $('opt-txt-slow').addEventListener('click',   () => setTextSpeed('slow'));
+  $('opt-txt-normal').addEventListener('click', () => setTextSpeed('normal'));
+  $('opt-txt-fast').addEventListener('click',   () => setTextSpeed('fast'));
+  $('opt-sfx-vol-slider').addEventListener('input',   function(){ setSfxVolume(this.value); });
+  $('opt-music-vol-slider').addEventListener('input', function(){ setMusicVolume(this.value); });
+  $('btn-options-back').addEventListener('click', () => showMainMenu());
+
+  // ── Static screen buttons ──
+  $('btn-start').addEventListener('click',   () => showMainMenu());
+  $('btn-name-ok').addEventListener('click', () => confirmName());
+  $('btn-name-back').addEventListener('click', () => showMainMenu());
+  $('btn-load-back').addEventListener('click', () => showMainMenu());
+  $('btn-credits-back').addEventListener('click', () => showMainMenu());
+  $('sound-toggle').addEventListener('click', () => toggleSound());
+
+  // ── HUD exit button ──
+  const hudExit = $('hud-exit-btn');
+  hudExit.addEventListener('click', () => confirmExit());
+  hudExit.addEventListener('mouseover', () => { hudExit.style.borderColor='var(--red)'; hudExit.style.color='var(--red)'; });
+  hudExit.addEventListener('mouseout',  () => { hudExit.style.borderColor='var(--dark)'; hudExit.style.color='var(--pd)'; });
+
+  ['b1','b2','b3','b4','b5'].forEach((id,i)=>{
+    setTimeout(()=>{$(id)?.classList.add('visible');if(i<3)sfx('blip');},( i+1)*560);
+  });
+  setTimeout(()=>{$('btn-start')?.classList.remove('hidden');sfx('boot');},3400);
+
+  document.addEventListener('click',()=>{
+    if($('game').style.display==='block'&&!inputDisabled)$('inp').focus();
+  });
+};
+</script>
+</body>
+</html>
